@@ -1,5 +1,6 @@
 import './app.css';
 import { createDocViewer } from './viewer/index.js';
+import { SAMPLE_GROUPS } from './samples.js';
 
 const fileInput = document.getElementById('file-input');
 const list = document.getElementById('file-list');
@@ -53,6 +54,35 @@ window.addEventListener('drop', (e) => {
   add([...(e.dataTransfer?.files || [])]);
 });
 
+const samplesEl = document.getElementById('samples');
+for (const group of SAMPLE_GROUPS) {
+  const box = document.createElement('div');
+  box.className = 'sample-group';
+  const h = document.createElement('h3');
+  h.textContent = group.title;
+  const ul = document.createElement('ul');
+  for (const [file, note] of group.files) {
+    const li = document.createElement('li');
+    const b = document.createElement('button');
+    b.type = 'button';
+    const name = document.createElement('span');
+    name.className = 'sample-name';
+    name.textContent = file;
+    const desc = document.createElement('span');
+    desc.className = 'sample-note';
+    desc.textContent = note;
+    b.append(name, desc);
+    b.addEventListener('click', async () => {
+      const res = await fetch(new URL(`samples/${file}`, document.baseURI));
+      add([new File([await res.blob()], file)]);
+    });
+    li.append(b);
+    ul.append(li);
+  }
+  box.append(h, ul);
+  samplesEl.append(box);
+}
+
 // Deep link for same-origin documents: /?src=/files/report.pdf
 const src = new URLSearchParams(location.search).get('src');
 if (src) {
@@ -60,3 +90,10 @@ if (src) {
   viewerEl.hidden = false;
   viewer.open(src);
 }
+
+document.getElementById('home').addEventListener('click', () => {
+  activeIndex = -1;
+  renderList();
+  viewerEl.hidden = true;
+  empty.hidden = false;
+});

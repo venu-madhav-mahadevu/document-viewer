@@ -10,11 +10,10 @@
   </head>
   <body>
     <div class="app">
-      <aside class="sidebar" aria-label="Open documents">
-        <div class="brand">Docs Viewer</div>
+      <aside class="app-sidebar" aria-label="Open documents">
+        <button id="home" type="button" class="brand" title="Home and samples">Docs Viewer</button>
         <label class="open-btn">
-          <input id="file-input" type="file" multiple hidden
-            accept=".pdf,.docx,.docm,.dotx,.xlsx,.xlsm,.xlsb,.xls,.ods,.csv,.tsv,.pptx,.pptm,.ppsx,.potx,.png,.jpg,.jpeg,.gif,.webp,.bmp,.svg,.avif,.txt,.log,.md,.json,.xml,.yaml,.yml,.html,.sql" />
+          <input id="file-input" type="file" multiple hidden />
           Open files
         </label>
         <ul id="file-list" class="file-list"></ul>
@@ -27,6 +26,10 @@
             <p>PDF · Word · Excel / CSV · PowerPoint · Images · Text</p>
             <button id="empty-open" type="button" class="open-btn">Choose files</button>
           </div>
+          <section class="samples" aria-labelledby="samples-title">
+            <h2 id="samples-title">Or try a sample</h2>
+            <div id="samples"></div>
+          </section>
         </div>
         <div id="viewer" class="viewer" hidden></div>
       </main>

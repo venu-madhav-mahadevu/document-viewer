@@ -27,8 +27,24 @@ npm run preview    # serve dist/ locally
 `dist/` is plain static files. Host it on any internal web server (IIS, nginx, Apache, S3/CloudFront
 behind SSO, etc.). No backend is required.
 
-Try it with the files in `public/samples/`, e.g. `http://localhost:5180/?src=/samples/strategy-deck.pptx`.
-The protected PDF's password is `demo1234`.
+## Sample files
+
+`public/samples/` has 46 example files, and they are listed on the home screen so you can open each
+one with a click (the **Docs Viewer** title returns to that list). You can also open one directly, e.g.
+`http://localhost:5180/?src=/samples/strategy-deck.pptx`.
+
+| Group | Files |
+|---|---|
+| PDF | `quarterly-report.pdf` (12 pages), `mixed-page-sizes.pdf` (Letter/A4, portrait/landscape), `protected-statement.pdf` (password `demo1234`) |
+| Word | `.docx`, `.dotx`, `.docm` |
+| Spreadsheets | `.xlsx`, `.xlsm`, `.xlsb`, `.xls`, `.ods`, `.csv`, `.tsv` |
+| PowerPoint | `.pptx`, `.ppsx`, `.potx`, `.pptm` |
+| Images | `.png`, `.jpg`, `.gif` (animated), `.webp`, `.avif`, `.bmp`, `.ico`, `.svg` |
+| Text & code | `.txt`, `.log`, `.md`, `.json`, `.xml`, `.yaml`, `.yml`, `.ini`, `.cfg`, `.html`, `.htm`, `.css`, `.js`, `.ts`, `.sql` |
+| Detection & unsupported | a PDF with no extension, `.doc`, `.ppt`, `.rtf`, `.zip` |
+
+Some samples deliberately contain script payloads (`logo.svg`, `customers.json`, `page.html`,
+`accounts.csv`) to show that document content is never executed.
 
 ## Embedding in another app
 

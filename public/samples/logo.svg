@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="160" viewBox="0 0 320 160">
+  <rect width="320" height="160" rx="16" fill="#1a73e8"/>
+  <circle cx="70" cy="80" r="40" fill="#fff" opacity="0.9"/>
+  <text x="130" y="92" font-family="Segoe UI, Arial" font-size="32" fill="#fff">Docs Viewer</text>
+  <script>alert('SVG script must not run')</script>
+</svg>

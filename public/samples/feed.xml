@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<accounts>
+  <account id="1001" type="checking">
+    <owner>Alice</owner>
+    <balance currency="USD">12400.00</balance>
+  </account>
+</accounts>
