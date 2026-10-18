@@ -65,6 +65,7 @@
 
       // The whole client: send the file, get a PDF back, show it.
       async function showDocument(blob, name) {
+        const id = ++renderId; // a newer click cancels this one
         setStatus(`Converting ${name}…`);
         const t0 = performance.now();
         const res = await fetch('/api/convert', {
@@ -72,19 +73,20 @@
           headers: { 'X-File-Name': encodeURIComponent(name) },
           body: blob,
         });
+        if (id !== renderId) return;
         if (!res.ok) {
           const { error } = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
           return setStatus(`${name}: ${error}`, true);
         }
         const bytes = new Uint8Array(await res.arrayBuffer());
         const converted = Math.round(performance.now() - t0);
-        const pages = await renderPdf(bytes);
+        const pages = await renderPdf(bytes, id);
+        if (id !== renderId) return;
         setStatus(`${name} → PDF, ${pages} page(s): converted in ${converted} ms, shown in ${Math.round(performance.now() - t0)} ms total`);
       }
 
       // Draw every page with pdf.js (same result on desktop, Android and iOS browsers).
-      async function renderPdf(bytes) {
-        const id = ++renderId;
+      async function renderPdf(bytes, id) {
         main.replaceChildren();
         const pdf = await pdfjsLib.getDocument({
           data: bytes,
@@ -94,6 +96,7 @@
         const width = Math.min(main.clientWidth - 32, 900);
         for (let n = 1; n <= pdf.numPages && id === renderId; n++) {
           const page = await pdf.getPage(n);
+          if (id !== renderId) break;
           const scale = width / page.getViewport({ scale: 1 }).width;
           const viewport = page.getViewport({ scale: scale * (window.devicePixelRatio || 1) });
           const canvas = document.createElement('canvas');
