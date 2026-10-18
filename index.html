@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Strict CSP: no third-party origins at all, so document content cannot be exfiltrated. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' blob: data:; worker-src 'self' blob:; connect-src 'self' blob: data: ws://localhost:*; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Docs Viewer</title>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar" aria-label="Open documents">
+        <div class="brand">Docs Viewer</div>
+        <label class="open-btn">
+          <input id="file-input" type="file" multiple hidden
+            accept=".pdf,.docx,.docm,.dotx,.xlsx,.xlsm,.xlsb,.xls,.ods,.csv,.tsv,.pptx,.pptm,.ppsx,.potx,.png,.jpg,.jpeg,.gif,.webp,.bmp,.svg,.avif,.txt,.log,.md,.json,.xml,.yaml,.yml,.html,.sql" />
+          Open files
+        </label>
+        <ul id="file-list" class="file-list"></ul>
+        <p class="privacy">Files open in your browser only. Nothing is uploaded.</p>
+      </aside>
+      <main class="main">
+        <div id="empty" class="empty">
+          <div class="drop">
+            <h1>Drop a document here</h1>
+            <p>PDF · Word · Excel / CSV · PowerPoint · Images · Text</p>
+            <button id="empty-open" type="button" class="open-btn">Choose files</button>
+          </div>
+        </div>
+        <div id="viewer" class="viewer" hidden></div>
+      </main>
+    </div>
+    <div id="drop-overlay" class="drop-overlay" hidden>Drop to open</div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

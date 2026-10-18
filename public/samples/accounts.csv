@@ -1,0 +1,5 @@
+id,name,balance
+1,Alice,1200.50
+2,Bob,"3,400.00"
+3,"Carol, Jr.",87.10
+4,<script>alert(1)</script>,0

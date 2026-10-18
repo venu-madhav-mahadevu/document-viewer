@@ -1,0 +1,25 @@
+{
+  "name": "docs-viewer",
+  "version": "1.0.0",
+  "description": "Client-side document viewer (PDF, Word, Excel, PowerPoint, images, text) - no external services",
+  "scripts": {
+    "predev": "node scripts/copy-pdfjs-assets.mjs",
+    "dev": "vite",
+    "prebuild": "node scripts/copy-pdfjs-assets.mjs",
+    "build": "vite build",
+    "preview": "vite preview --port 5181"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "module",
+  "dependencies": {
+    "docx-preview": "^0.4.1",
+    "jszip": "^3.10.2",
+    "pdfjs-dist": "^6.4.299",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "vite": "^8.3.4"
+  },
+  "private": true
+}
