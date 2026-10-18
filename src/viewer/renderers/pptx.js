@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import { el, sanitizeLinks } from '../sanitize.js';
+import { clonePagesForPrint, PAGE_WIDTH, PAGE_WIDTH_LANDSCAPE } from '../print.js';
 
 /*
  * Lightweight, dependency-free PPTX renderer (JSZip + DOMParser only).
@@ -600,8 +601,15 @@ export async function renderPptx({ buffer, mount }) {
   }
   sanitizeLinks(root);
 
+  const slides = () => [...root.querySelectorAll('.dv-pptx-slide')];
   return {
+    pages: slides,
+    pageWidth: () => W,
     naturalWidth: () => W,
+    printNodes: () => ({
+      nodes: clonePagesForPrint(slides(), W >= H ? PAGE_WIDTH_LANDSCAPE : PAGE_WIDTH, () => W),
+      landscape: W >= H,
+    }),
     destroy() { blobUrls.forEach((u) => URL.revokeObjectURL(u)); },
   };
 }

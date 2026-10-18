@@ -13,7 +13,7 @@ const CSS_UNITS = pdfjsLib.PixelsPerInch.PDF_TO_CSS_UNITS; // 96/72 so 100% = re
  * Continuous-scroll PDF view. Pages are laid out as sized placeholders and only
  * rendered when they approach the viewport, so 500-page statements stay fast.
  */
-export async function renderPdf({ buffer, mount, scroller, onState, askPassword }) {
+export async function renderPdf({ buffer, mount, scroller, askPassword }) {
   const task = pdfjsLib.getDocument({
     data: new Uint8Array(buffer),
     isEvalSupported: false,
@@ -43,13 +43,11 @@ export async function renderPdf({ buffer, mount, scroller, onState, askPassword 
 
   let zoom = 1;
   let pages = [];
-  const rendered = new Map(); // pageNumber -> { task, textLayer }
+  const rendered = new Map(); // pageNumber -> { task, textLayer, done }
+  const pageText = new Map(); // pageNumber -> lowercase text, for search
 
   const observer = new IntersectionObserver((entries) => {
-    for (const e of entries) {
-      const n = Number(e.target.dataset.page);
-      if (e.isIntersecting) renderPage(n);
-    }
+    for (const e of entries) if (e.isIntersecting) renderPage(Number(e.target.dataset.page));
   }, { root: scroller, rootMargin: '800px 0px' });
 
   function layout() {
@@ -68,76 +66,111 @@ export async function renderPdf({ buffer, mount, scroller, onState, askPassword 
     });
   }
 
-  async function renderPage(n) {
-    if (rendered.has(n)) return;
-    const holder = pages[n - 1];
+  function renderPage(n) {
+    if (rendered.has(n)) return rendered.get(n).done;
     const entry = {};
     rendered.set(n, entry);
-    const page = await pdf.getPage(n);
-    const scale = zoom * CSS_UNITS;
-    const vp = page.getViewport({ scale });
-    const dpr = window.devicePixelRatio || 1;
+    entry.done = (async () => {
+      const holder = pages[n - 1];
+      const page = await pdf.getPage(n);
+      const scale = zoom * CSS_UNITS;
+      const vp = page.getViewport({ scale });
+      const dpr = window.devicePixelRatio || 1;
 
-    const canvas = el('canvas');
-    canvas.width = Math.floor(vp.width * dpr);
-    canvas.height = Math.floor(vp.height * dpr);
-    canvas.style.width = `${Math.floor(vp.width)}px`;
-    canvas.style.height = `${Math.floor(vp.height)}px`;
+      const canvas = el('canvas');
+      canvas.width = Math.floor(vp.width * dpr);
+      canvas.height = Math.floor(vp.height * dpr);
+      canvas.style.width = `${Math.floor(vp.width)}px`;
+      canvas.style.height = `${Math.floor(vp.height)}px`;
 
-    const textDiv = el('div', 'textLayer');
-    holder.style.setProperty('--scale-factor', String(scale));
-    holder.style.setProperty('--total-scale-factor', String(scale));
-    holder.replaceChildren(canvas, textDiv);
+      const textDiv = el('div', 'textLayer');
+      holder.style.setProperty('--scale-factor', String(scale));
+      holder.style.setProperty('--total-scale-factor', String(scale));
+      holder.replaceChildren(canvas, textDiv);
 
-    entry.task = page.render({
-      canvas,
-      viewport: vp,
-      transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
-    });
-    entry.textLayer = new pdfjsLib.TextLayer({
-      textContentSource: page.streamTextContent(),
-      container: textDiv,
-      viewport: vp,
-    });
-    try {
-      await Promise.all([entry.task.promise, entry.textLayer.render()]);
-    } catch (err) {
-      if (!(err instanceof pdfjsLib.RenderingCancelledException)) console.warn(err);
+      entry.task = page.render({
+        canvas,
+        viewport: vp,
+        transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
+      });
+      entry.textLayer = new pdfjsLib.TextLayer({
+        textContentSource: page.streamTextContent(),
+        container: textDiv,
+        viewport: vp,
+      });
+      try {
+        await Promise.all([entry.task.promise, entry.textLayer.render()]);
+      } catch (err) {
+        if (!(err instanceof pdfjsLib.RenderingCancelledException)) console.warn(err);
+      }
+    })();
+    return entry.done;
+  }
+
+  async function textOf(n) {
+    if (!pageText.has(n)) {
+      const content = await (await pdf.getPage(n)).getTextContent();
+      pageText.set(n, content.items.map((item) => item.str).join('\n').toLowerCase());
     }
+    return pageText.get(n);
   }
 
-  function currentPage() {
-    const top = scroller.scrollTop + scroller.clientHeight / 3;
-    let n = 1;
-    for (const p of pages) { if (p.offsetTop <= top) n = Number(p.dataset.page); else break; }
-    return n;
+  /** Render one page off-screen to a canvas of the given CSS width. */
+  // intent 'print' renders without requestAnimationFrame pacing, so it also
+  // completes in background tabs (where browsers pause animation frames).
+  async function snapshot(n, cssWidth, quality = 1, intent = 'display') {
+    const page = await pdf.getPage(n);
+    const scale = cssWidth / page.getViewport({ scale: 1 }).width;
+    const vp = page.getViewport({ scale: scale * quality });
+    const canvas = el('canvas');
+    canvas.width = Math.floor(vp.width);
+    canvas.height = Math.floor(vp.height);
+    await page.render({ canvas, viewport: vp, intent }).promise;
+    return canvas;
   }
-
-  const emit = () => onState({ page: currentPage(), pages: pdf.numPages });
-  scroller.addEventListener('scroll', emit, { passive: true });
 
   layout();
-  emit();
 
   return {
     get zoom() { return zoom; },
+    pages: () => pages,
+    pageSize: (n) => sizes[n - 1],
+    ensureRendered: renderPage,
     setZoom(z) {
       const ratio = scroller.scrollTop / Math.max(1, scroller.scrollHeight);
       zoom = z;
       layout();
       scroller.scrollTop = ratio * scroller.scrollHeight;
-      emit();
     },
     fitWidthZoom(available) {
       const widest = Math.max(...sizes.map((s) => s.w));
       return available / (widest * CSS_UNITS);
     },
-    goToPage(n) {
-      const p = pages[Math.min(Math.max(n, 1), pages.length) - 1];
-      if (p) scroller.scrollTop = p.offsetTop - 16;
+    /** Occurrences per page, read from the text content (works for pages not yet drawn). */
+    async searchText(term) {
+      const needle = term.toLowerCase();
+      const hits = [];
+      for (let n = 1; n <= pdf.numPages; n++) {
+        const text = await textOf(n);
+        let count = 0;
+        for (let i = text.indexOf(needle); i !== -1; i = text.indexOf(needle, i + needle.length)) count++;
+        if (count) hits.push({ page: n, count });
+      }
+      return hits;
+    },
+    thumbnail: (n, width) => snapshot(n, width, Math.min(window.devicePixelRatio || 1, 2)),
+    async printNodes() {
+      const imgs = [];
+      for (let n = 1; n <= pdf.numPages; n++) {
+        const canvas = await snapshot(n, 816, 2, 'print'); // ~Letter width at 2x for crisp print
+        const img = el('img');
+        img.src = canvas.toDataURL('image/png');
+        img.alt = `Page ${n}`;
+        imgs.push(img);
+      }
+      return { nodes: imgs, landscape: sizes[0].w > sizes[0].h };
     },
     destroy() {
-      scroller.removeEventListener('scroll', emit);
       observer.disconnect();
       for (const r of rendered.values()) { r.task?.cancel(); r.textLayer?.cancel(); }
       task.destroy(); // pdf.js v6: teardown lives on the loading task, not the document

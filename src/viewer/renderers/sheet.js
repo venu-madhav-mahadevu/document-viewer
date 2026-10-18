@@ -9,7 +9,7 @@ const MAX_COLS = 256;
  * sheet tabs. Cells are written with textContent only, so nothing in a cell
  * can ever be interpreted as HTML.
  */
-export async function renderSheet({ buffer, name, mount }) {
+export async function renderSheet({ buffer, name, mount, onContentChange }) {
   const isText = /\.(csv|tsv)$/i.test(name);
   const wb = isText
     ? XLSX.read(new TextDecoder().decode(buffer), { type: 'string', raw: true })
@@ -35,10 +35,15 @@ export async function renderSheet({ buffer, name, mount }) {
     buttons.forEach((b) => b.setAttribute('aria-selected', String(b.textContent === sheetName)));
     grid.replaceChildren(buildTable(wb.Sheets[sheetName]));
     grid.scrollTo(0, 0);
+    onContentChange?.();
   }
 
   show(visible[0] ?? wb.SheetNames[0]);
-  return { destroy() {} };
+  return {
+    // Prints the sheet that is currently open, like a spreadsheet app does.
+    printNodes: () => ({ nodes: [...grid.children].map((n) => n.cloneNode(true)) }),
+    destroy() {},
+  };
 }
 
 function buildTable(ws) {

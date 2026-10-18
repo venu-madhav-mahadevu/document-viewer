@@ -1,5 +1,9 @@
 import { renderAsync } from 'docx-preview';
 import { el, sanitizeLinks } from '../sanitize.js';
+import { clonePagesForPrint, PAGE_WIDTH } from '../print.js';
+
+// Layout width in CSS px, unaffected by the viewer's zoom.
+const widthOf = (node) => parseFloat(getComputedStyle(node).width) || node.offsetWidth || 1;
 
 export async function renderDocx({ buffer, mount }) {
   const styles = el('div');
@@ -22,8 +26,13 @@ export async function renderDocx({ buffer, mount }) {
   });
   sanitizeLinks(body);
 
+  const pages = () => [...body.querySelectorAll('section.docx')];
+
   return {
-    naturalWidth: () => Math.max(...[...body.querySelectorAll('section.docx')].map((s) => s.offsetWidth), 1),
+    pages,
+    pageWidth: widthOf,
+    naturalWidth: () => Math.max(...pages().map(widthOf), 1),
+    printNodes: () => ({ nodes: clonePagesForPrint(pages(), PAGE_WIDTH, widthOf, 'docx-wrapper') }),
     destroy() {},
   };
 }

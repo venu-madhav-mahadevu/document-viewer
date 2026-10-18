@@ -15,6 +15,17 @@ and no Google, Microsoft or other third-party service is involved.
 
 Files without an extension (e.g. streamed from an API) are detected from their content.
 
+**Google Docs-style viewing features** (no extra libraries; built on browser APIs):
+
+| Feature | Details |
+|---|---|
+| Page thumbnails | Sidebar of page/slide previews (PDF, Word, PowerPoint), drawn lazily; click to jump |
+| Find in document | `Ctrl+F`, every match highlighted, `3 of 12`, Enter / Shift+Enter. Searches all PDF pages, even ones not drawn yet (CSS Custom Highlight API) |
+| Print | `Ctrl+P` prints only the document, one page per sheet; slides print landscape; spreadsheets print the open sheet |
+| Full screen | For reading and presenting slides |
+| Page / zoom pill | Floating `Page 3 / 12 · − 100% +` bar, like Google Drive's preview |
+| Keyboard | `←` `→` previous/next page, `Ctrl` `+`/`−`/`0` zoom, `Esc` closes search |
+
 ## Run it
 
 ```bash
