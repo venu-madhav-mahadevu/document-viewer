@@ -1,0 +1,52 @@
+:root {
+  --bg: #f8f9fa; --surface: #ffffff; --border: #dadce0; --text: #202124;
+  --muted: #5f6368; --accent: #1a73e8; --code-bg: #f6f8fa;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
+a { color: var(--accent); }
+.crumbs { font-size: 13px; margin-bottom: 8px; }
+h1 { font-size: 26px; font-weight: 600; margin: 0 0 4px; }
+.meta { color: var(--muted); margin: 0 0 16px; }
+.meta code, .install code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; font-size: 13px; }
+.install { margin: 0 0 20px; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; }
+.controls button, .controls label {
+  font: inherit; font-weight: 600; border-radius: 20px; padding: 8px 18px; cursor: pointer; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text);
+}
+.controls label { background: var(--accent); color: #fff; border-color: var(--accent); }
+.controls input { display: none; }
+#status { color: var(--muted); font-size: 13px; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; min-width: 0; }
+.panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+#output { padding: 16px; overflow: auto; max-height: 75vh; background: #eef0f2; min-height: 200px; }
+pre { margin: 0; overflow: auto; max-height: 75vh; }
+pre code.hljs { padding: 16px; font: 13px/1.55 Consolas, "Cascadia Mono", Menlo, monospace; background: var(--code-bg); }
+
+/* Shared output styles used by several demos */
+.page { background: #fff; box-shadow: 0 1px 3px rgba(60, 64, 67, .3); margin: 0 auto 16px; display: block; max-width: 100%; }
+table.data { border-collapse: collapse; background: #fff; font-size: 13px; }
+table.data th, table.data td { border: 1px solid #dadce0; padding: 4px 8px; white-space: nowrap; }
+table.data th { background: #f1f3f4; font-weight: 600; }
+.doc-html { background: #fff; padding: 32px 40px; box-shadow: 0 1px 3px rgba(60, 64, 67, .3); }
+.slide { background: #fff; box-shadow: 0 1px 3px rgba(60, 64, 67, .3); padding: 20px 24px; margin-bottom: 16px; }
+.slide h3 { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+.slide img { max-width: 160px; max-height: 100px; margin: 8px 8px 0 0; border: 1px solid #dadce0; }
+.tabs { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+.tabs button { font: inherit; padding: 4px 12px; border: 1px solid #dadce0; border-radius: 4px; background: #fff; cursor: pointer; }
+.tabs button[aria-pressed="true"] { background: #e8f0fe; border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+/* Index page */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.card { display: block; text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.card:hover { border-color: var(--accent); box-shadow: 0 1px 6px rgba(26, 115, 232, .25); }
+.card .fmt { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); }
+.card h3 { margin: 4px 0; font-size: 17px; }
+.card p { margin: 0; color: var(--muted); font-size: 13px; }
+.card .lic { display: inline-block; margin-top: 8px; font-size: 12px; background: var(--code-bg); padding: 1px 8px; border-radius: 10px; }
+.recommended { border-left: 4px solid #188038; }

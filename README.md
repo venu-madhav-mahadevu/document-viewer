@@ -27,6 +27,30 @@ npm run preview    # serve dist/ locally
 `dist/` is plain static files. Host it on any internal web server (IIS, nginx, Apache, S3/CloudFront
 behind SSO, etc.). No backend is required.
 
+## Library demos with code
+
+`demos/` has one page per open-source library. Each page renders a sample file and shows the code
+that did it, next to the result. Open `http://localhost:5180/demos/` (or **Library demos with code**
+in the app sidebar).
+
+| Demo | Library (npm) | License | Format |
+|---|---|---|---|
+| `full-viewer` | This project's `createDocViewer()` | Apache-2.0 / MIT | All |
+| `pdfjs` | `pdfjs-dist` | Apache-2.0 | PDF |
+| `docx-preview` | `docx-preview` | Apache-2.0 | Word (layout) |
+| `mammoth` | `mammoth` + `dompurify` | BSD-2 / Apache-2.0 | Word (clean HTML) |
+| `sheetjs` | `xlsx` (SheetJS CE) | Apache-2.0 | Excel / CSV / ODS |
+| `exceljs` | `exceljs` | MIT | Excel with styles |
+| `papaparse` | `papaparse` | MIT | CSV / TSV |
+| `pptx-jszip` | `jszip` | MIT | PowerPoint text + images |
+| `viewerjs` | `viewerjs` | MIT | Images (zoom/rotate) |
+| `markdown` | `marked` + `dompurify` + `highlight.js` | MIT / Apache-2.0 / BSD-3 | Markdown and code |
+
+The alternative libraries (mammoth, exceljs, papaparse, marked, dompurify, highlight.js, viewerjs)
+are dev dependencies used only by the demos, so the production viewer still ships just four
+libraries. `npm audit --omit=dev` reports 0 vulnerabilities. The full audit flags only `sprintf-js`,
+which belongs to mammoth's command-line tool and never runs in the browser.
+
 ## Sample files
 
 `public/samples/` has 46 example files, and they are listed on the home screen so you can open each

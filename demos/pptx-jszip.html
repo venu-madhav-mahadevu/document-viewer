@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' blob: data:; worker-src 'self' blob:; connect-src 'self' blob: data: ws://localhost:* ws://127.0.0.1:*; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'" />
+    <meta name="referrer" content="no-referrer" />
+    <title>JSZip (PPTX text + images) demo</title>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="crumbs"><a href="./index.html">All library demos</a> · <a href="../index.html">Docs Viewer app</a></div>
+      <h1>JSZip (PPTX text + images)</h1>
+      <p class="meta">PowerPoint · License <code>MIT</code> · Opens the PPTX zip and extracts each slide's text and pictures.</p>
+      <p class="install">Install: <code>npm install jszip</code></p>
+      <div class="controls">
+        <button id="load-sample" type="button">Load sample</button>
+        <label>Open your own file<input id="file" type="file" /></label>
+        <span id="status" role="status"></span>
+      </div>
+      <div class="grid">
+        <section class="panel"><h2>Result</h2><div id="output"></div></section>
+        <section class="panel"><h2>Code</h2><pre><code id="code" class="language-javascript"></code></pre></section>
+      </div>
+    </div>
+    <script type="module" src="./pptx-jszip.js"></script>
+  </body>
+</html>

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' blob: data:; worker-src 'self' blob:; connect-src 'self' blob: data: ws://localhost:* ws://127.0.0.1:*; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Open-source library demos</title>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="crumbs"><a href="../index.html">Docs Viewer app</a></div>
+      <h1>Open-source JavaScript library demos</h1>
+      <p class="meta">Each page renders a sample file in the browser and shows the code that did it. Nothing is uploaded. Green border = recommended for production.</p>
+      <div class="cards">
+        <a class="card recommended" href="./full-viewer.html">
+          <span class="fmt">All formats</span>
+          <h3>Docs Viewer component (this project)</h3>
+          <p>One API for PDF, Word, Excel, PowerPoint, images and text. Recommended.</p>
+          <span class="lic">Apache-2.0 / MIT</span>
+        </a>
+        <a class="card recommended" href="./pdfjs.html">
+          <span class="fmt">PDF</span>
+          <h3>pdf.js</h3>
+          <p>Mozilla's PDF renderer (used inside Firefox). Draws each page to a canvas.</p>
+          <span class="lic">Apache-2.0</span>
+        </a>
+        <a class="card recommended" href="./docx-preview.html">
+          <span class="fmt">Word</span>
+          <h3>docx-preview</h3>
+          <p>Word to paged HTML that keeps the document layout.</p>
+          <span class="lic">Apache-2.0</span>
+        </a>
+        <a class="card" href="./mammoth.html">
+          <span class="fmt">Word</span>
+          <h3>mammoth + DOMPurify</h3>
+          <p>Word to clean semantic HTML. Simpler, no page layout.</p>
+          <span class="lic">BSD-2 / Apache-2.0</span>
+        </a>
+        <a class="card recommended" href="./sheetjs.html">
+          <span class="fmt">Excel / CSV</span>
+          <h3>SheetJS CE</h3>
+          <p>Reads .xlsx .xlsm .xlsb .xls .ods .csv .tsv with sheet tabs.</p>
+          <span class="lic">Apache-2.0</span>
+        </a>
+        <a class="card" href="./exceljs.html">
+          <span class="fmt">Excel</span>
+          <h3>ExcelJS</h3>
+          <p>Reads .xlsx including cell styles (bold, fills, fonts).</p>
+          <span class="lic">MIT</span>
+        </a>
+        <a class="card" href="./papaparse.html">
+          <span class="fmt">CSV</span>
+          <h3>Papa Parse</h3>
+          <p>Fast, robust CSV/TSV parsing with quoted fields.</p>
+          <span class="lic">MIT</span>
+        </a>
+        <a class="card recommended" href="./pptx-jszip.html">
+          <span class="fmt">PowerPoint</span>
+          <h3>JSZip (PPTX text + images)</h3>
+          <p>Opens the PPTX zip and extracts each slide's text and pictures.</p>
+          <span class="lic">MIT</span>
+        </a>
+        <a class="card" href="./viewerjs.html">
+          <span class="fmt">Images</span>
+          <h3>Viewer.js</h3>
+          <p>Image zoom, rotate, flip and pan.</p>
+          <span class="lic">MIT</span>
+        </a>
+        <a class="card" href="./markdown.html">
+          <span class="fmt">Text / code</span>
+          <h3>marked + DOMPurify + highlight.js</h3>
+          <p>Markdown rendering and syntax-highlighted code files.</p>
+          <span class="lic">MIT / Apache-2.0 / BSD-3</span>
+        </a>
+      </div>
+    </div>
+    <script type="module">import './demo.css';</script>
+  </body>
+</html>
