@@ -7,7 +7,7 @@
 //   GET  /pdfjs/*       pdf.js for the web page
 //   GET  /samples/*     demo files (from ../public/samples)
 //
-// Office files are converted by Gotenberg (LibreOffice) running on BofA's own
+// Office files are converted by Gotenberg (LibreOffice) running on your own
 // infrastructure. PDFs are passed straight through. Nothing goes to a third party.
 
 import { createServer } from 'node:http';
