@@ -1,0 +1,14 @@
+{
+  "name": "convert-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Office -> PDF on our own server (Gotenberg/LibreOffice), shown with pdf.js on web and native viewers on mobile",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "pdfjs-dist": "6.4.299"
+  },
+  "license": "UNLICENSED"
+}

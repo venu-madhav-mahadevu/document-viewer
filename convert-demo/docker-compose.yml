@@ -1,0 +1,29 @@
+# One command runs everything:  docker compose up
+#   http://localhost:8080   demo page
+#
+# Gotenberg is NOT published to the network - only the demo server can reach it.
+services:
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    restart: unless-stopped
+    command:
+      - gotenberg
+      - --api-timeout=90s
+    # For local experiments without the app container, uncomment:
+    # ports: ["127.0.0.1:3000:3000"]
+
+  app:
+    image: node:24-alpine
+    restart: unless-stopped
+    working_dir: /app
+    command: ["node", "server.js"]   # run `npm install` once on the host first
+    environment:
+      GOTENBERG_URL: http://gotenberg:3000
+      SAMPLES_DIR: /samples
+    volumes:
+      - ./:/app:ro          # server.js, public/, node_modules/pdfjs-dist
+      - ../public/samples:/samples:ro
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      - gotenberg

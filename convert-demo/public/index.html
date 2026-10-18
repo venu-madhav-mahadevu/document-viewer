@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Convert to PDF Demo</title>
+    <style>
+      :root { --bg: #f8f9fa; --surface: #fff; --border: #dadce0; --text: #202124; --muted: #5f6368; --accent: #1a73e8; --error: #c5221f; }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) { --bg: #1f1f1f; --surface: #2b2b2b; --border: #3c4043; --text: #e8eaed; --muted: #9aa0a6; --accent: #8ab4f8; --error: #f28b82; }
+      }
+      :root[data-theme="dark"] { --bg: #1f1f1f; --surface: #2b2b2b; --border: #3c4043; --text: #e8eaed; --muted: #9aa0a6; --accent: #8ab4f8; --error: #f28b82; }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body { background: var(--bg); color: var(--text); font: 15px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; display: flex; flex-direction: column; }
+      header { padding: 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+      h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+      .sub { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+      .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      button, label.pick {
+        font: inherit; font-size: 13px; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+        border-radius: 16px; padding: 6px 14px; cursor: pointer; min-height: 34px;
+      }
+      button:hover { border-color: var(--accent); }
+      label.pick { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+      label.pick input { display: none; }
+      #status { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 20px; }
+      #status.error { color: var(--error); }
+      main { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 16px; min-height: 0; padding: 16px; overflow: auto; }
+      canvas.page { background: #fff; box-shadow: 0 1px 3px rgba(60, 64, 67, .3), 0 4px 8px rgba(60, 64, 67, .15); max-width: 100%; height: auto; }
+      .empty { flex: 1; display: grid; place-items: center; color: var(--muted); border: 2px dashed var(--border); border-radius: 8px; text-align: center; padding: 16px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Office → PDF → Browser viewer</h1>
+      <p class="sub">The file goes to <b>our own server</b>, Gotenberg (LibreOffice) converts it to PDF, and pdf.js draws it. Works the same in every browser, including phones. No Google, no Microsoft.</p>
+      <div class="row">
+        <label class="pick">Open a file<input id="file" type="file" /></label>
+        <button data-sample="onboarding-guide.docx">Word .docx</button>
+        <button data-sample="regional-sales.xlsx">Excel .xlsx</button>
+        <button data-sample="strategy-deck.pptx">PowerPoint .pptx</button>
+        <button data-sample="branches-legacy.xls">Old Excel .xls</button>
+        <button data-sample="letter.rtf">Rich text .rtf</button>
+        <button data-sample="quarterly-report.pdf">PDF</button>
+      </div>
+      <div id="status" role="status"></div>
+    </header>
+    <main id="main">
+      <div class="empty" id="empty">Pick a file or a sample above</div>
+    </main>
+
+    <script type="module">
+      import * as pdfjsLib from '/pdfjs/pdf.min.mjs';
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.mjs';
+
+      const statusEl = document.getElementById('status');
+      const main = document.getElementById('main');
+      let renderId = 0;
+
+      function setStatus(text, isError = false) {
+        statusEl.textContent = text;
+        statusEl.className = isError ? 'error' : '';
+      }
+
+      // The whole client: send the file, get a PDF back, show it.
+      async function showDocument(blob, name) {
+        setStatus(`Converting ${name}…`);
+        const t0 = performance.now();
+        const res = await fetch('/api/convert', {
+          method: 'POST',
+          headers: { 'X-File-Name': encodeURIComponent(name) },
+          body: blob,
+        });
+        if (!res.ok) {
+          const { error } = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+          return setStatus(`${name}: ${error}`, true);
+        }
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        const converted = Math.round(performance.now() - t0);
+        const pages = await renderPdf(bytes);
+        setStatus(`${name} → PDF, ${pages} page(s): converted in ${converted} ms, shown in ${Math.round(performance.now() - t0)} ms total`);
+      }
+
+      // Draw every page with pdf.js (same result on desktop, Android and iOS browsers).
+      async function renderPdf(bytes) {
+        const id = ++renderId;
+        main.replaceChildren();
+        const pdf = await pdfjsLib.getDocument({
+          data: bytes,
+          isEvalSupported: false,
+          standardFontDataUrl: '/pdfjs/standard_fonts/',
+        }).promise;
+        const width = Math.min(main.clientWidth - 32, 900);
+        for (let n = 1; n <= pdf.numPages && id === renderId; n++) {
+          const page = await pdf.getPage(n);
+          const scale = width / page.getViewport({ scale: 1 }).width;
+          const viewport = page.getViewport({ scale: scale * (window.devicePixelRatio || 1) });
+          const canvas = document.createElement('canvas');
+          canvas.className = 'page';
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          canvas.style.width = `${width}px`;
+          main.append(canvas);
+          await page.render({ canvas, viewport }).promise;
+        }
+        return pdf.numPages;
+      }
+
+      document.getElementById('file').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) showDocument(file, file.name);
+        e.target.value = '';
+      });
+
+      document.querySelectorAll('[data-sample]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const name = btn.dataset.sample;
+          const blob = await fetch(`/samples/${name}`).then((r) => r.blob());
+          showDocument(blob, name);
+        });
+      });
+
+      fetch('/api/health').then((r) => r.json()).then((h) => {
+        if (h.gotenberg !== 'ok') setStatus('Conversion service is not running. Start it with: docker compose up -d (PDFs still work).', true);
+      });
+    </script>
+  </body>
+</html>
