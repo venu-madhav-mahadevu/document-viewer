@@ -62,4 +62,11 @@ table.data th { background: #f1f3f4; font-weight: 600; }
 .card h3 { margin: 4px 0; font-size: 17px; }
 .card p { margin: 0; color: var(--muted); font-size: 13px; }
 .card .lic { display: inline-block; margin-top: 8px; font-size: 12px; background: var(--code-bg); padding: 1px 8px; border-radius: 10px; }
+.card .formats { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 10px; }
+.card .formats-label { font-size: 12px; font-weight: 600; color: var(--text); margin-right: 2px; }
+.card .fmt-chip {
+  font: 600 11.5px/1.6 Consolas, "Cascadia Mono", Menlo, monospace; padding: 0 6px; border-radius: 4px;
+  background: #e6f4ea; color: #137333; border: 1px solid #ceead6;
+}
+.card .fmt-note { margin: 6px 0 0; font-size: 12px; color: #b06000; }
 .recommended { border-left: 4px solid #188038; }
