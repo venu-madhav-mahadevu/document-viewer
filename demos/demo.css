@@ -41,6 +41,18 @@ table.data th { background: #f1f3f4; font-weight: 600; }
 .tabs button { font: inherit; padding: 4px 12px; border: 1px solid #dadce0; border-radius: 4px; background: #fff; cursor: pointer; }
 .tabs button[aria-pressed="true"] { background: #e8f0fe; border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
+/* Zoom bar (UTIF.js demo) */
+.zoombar {
+  position: sticky; top: 0; z-index: 2; display: flex; gap: 4px; width: max-content; margin: 0 auto 12px;
+  padding: 4px; background: rgba(32, 33, 36, 0.92); border-radius: 20px;
+}
+.zoombar button {
+  font: 600 14px/1 "Segoe UI", system-ui, sans-serif; color: #fff; background: transparent; border: 0;
+  border-radius: 16px; min-width: 36px; height: 32px; padding: 0 10px; cursor: pointer;
+}
+.zoombar button:hover { background: rgba(255, 255, 255, 0.16); }
+.zoombar button:focus-visible { outline: 2px solid #8ab4f8; }
+
 /* Index page: legend */
 .legend { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin: 0 0 20px; }
 .legend h2 { font-size: 17px; margin: 0 0 4px; }

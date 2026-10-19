@@ -80,8 +80,31 @@ for (const group of SAMPLE_GROUPS) {
     desc.textContent = note;
     b.append(name, desc);
     b.addEventListener('click', async () => {
-      const res = await fetch(new URL(`samples/${file}`, document.baseURI));
-      add([new File([await res.blob()], file.split('/').pop())]);
+      const fileName = file.split('/').pop();
+      // Spinner straight away: large samples take seconds to download.
+      empty.hidden = true;
+      viewerEl.hidden = false;
+      viewer.loading(`Loading ${fileName}…`, fileName);
+      try {
+        const res = await fetch(new URL(`samples/${file}`, document.baseURI));
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const total = Number(res.headers.get('content-length')) || 0;
+        const reader = res.body.getReader();
+        const chunks = [];
+        let received = 0;
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          received += value.length;
+          viewer.loading(total
+            ? `Loading ${fileName}… ${Math.min(100, Math.round((received / total) * 100))}%`
+            : `Loading ${fileName}… ${formatBytes(received)}`);
+        }
+        add([new File(chunks, fileName)]);
+      } catch (err) {
+        viewer.loading(`Could not load ${fileName} (${err.message}).`, fileName, 'error');
+      }
     });
     li.append(b);
     ul.append(li);

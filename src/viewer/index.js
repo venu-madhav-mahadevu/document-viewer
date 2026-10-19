@@ -269,6 +269,19 @@ export function createDocViewer(container, options = {}) {
     applyZoom(next ?? zoom);
   };
 
+  // Ctrl + mouse wheel and touchpad pinch (which browsers report as Ctrl + wheel)
+  // zoom the document instead of the whole page, like Google Docs. One step per
+  // 150 ms so a fast wheel doesn't jump straight to 400%.
+  let lastWheelZoom = 0;
+  scroller.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey || !current?.controller) return;
+    e.preventDefault();
+    const now = performance.now();
+    if (now - lastWheelZoom < 150) return;
+    lastWheelZoom = now;
+    step(e.deltaY < 0 ? 1 : -1);
+  }, { passive: false });
+
   let lastWidth = 0;
   new ResizeObserver(() => {
     const width = scroller.clientWidth;
@@ -484,6 +497,7 @@ export function createDocViewer(container, options = {}) {
     async open(source, name) {
       const token = ++openToken;
       const started = performance.now();
+      root.classList.remove('dv-preloading');
       reset();
       setStatus('Opening…', 'loading');
       try {
@@ -538,6 +552,20 @@ export function createDocViewer(container, options = {}) {
             : err?.message || 'This document could not be opened.';
         setStatus(msg, 'error');
       }
+    },
+
+    /**
+     * Show the loading spinner before open() is called, e.g. while the app is
+     * still downloading the file. Call again to update the message ("45%").
+     */
+    loading(message, name, kind = 'loading') {
+      if (!root.classList.contains('dv-preloading')) {
+        openToken++;
+        reset();
+        root.classList.add('dv-preloading');
+      }
+      if (name) { nameEl.textContent = name; nameEl.title = name; sizeEl.textContent = ''; badge.textContent = ''; }
+      setStatus(message, kind);
     },
 
     zoomIn: () => step(1),
