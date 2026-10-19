@@ -12,6 +12,33 @@
       <div class="crumbs"><a href="../index.html">Docs Viewer app</a></div>
       <h1>Open-source JavaScript library demos</h1>
       <p class="meta">Each page renders a sample file in the browser and shows the code that did it. Nothing is uploaded. Green border = recommended for production.</p>
+      <section class="legend" aria-labelledby="legend-title">
+        <h2 id="legend-title">Which libraries are used</h2>
+        <p>Green border = recommended for production. Those are the libraries the project actually uses. The others are alternatives for special needs.</p>
+        <div class="legend-cols">
+          <div>
+            <h3><span class="dot dot-green" aria-hidden="true"></span>Green (recommended, used inside Docs Viewer)</h3>
+            <ul>
+              <li><strong>Docs Viewer component</strong>: the all-in-one wrapper</li>
+              <li><strong>pdf.js</strong>: PDFs</li>
+              <li><strong>docx-preview</strong>: Word</li>
+              <li><strong>SheetJS CE</strong>: Excel and CSV</li>
+              <li><strong>JSZip</strong>: PowerPoint</li>
+              <li><strong>cfb</strong>: old Word .doc and PowerPoint .ppt (no separate demo page)</li>
+              <li><strong>UTIF.js</strong>: TIFF scans (no separate demo page)</li>
+            </ul>
+          </div>
+          <div>
+            <h3><span class="dot dot-grey" aria-hidden="true"></span>No green (optional alternatives)</h3>
+            <ul>
+              <li><strong>mammoth + DOMPurify</strong>: use it instead of docx-preview only if you want clean text-style HTML without page layout.</li>
+              <li><strong>ExcelJS</strong>: use it if you need cell styles (bold, colors, fonts). It only reads .xlsx, not .xls.</li>
+              <li><strong>Papa Parse</strong>: only for CSV. SheetJS already handles CSV, so you need it only for very large or tricky CSV files.</li>
+              <li><strong>Viewer.js</strong>: adds zoom, rotate, flip and pan for images. A plain <code>&lt;img&gt;</code> is enough to just show an image.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
       <div class="cards">
         <a class="card recommended" href="./full-viewer.html">
           <span class="fmt">All formats</span>
