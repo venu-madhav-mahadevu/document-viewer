@@ -156,9 +156,9 @@ The container needs a height; the viewer fills it.
 - **Spreadsheets**: formulas show the value cached by Excel at save time (they aren't recalculated).
   Very large sheets display the first 5,000 rows × 256 columns. A 50 MB, 370,000-row workbook
   opens in about 4 to 13 seconds (parsed in a background worker, 77 MB of memory).
-- **Large TIFF scans**: every page is decoded when the file opens, so the 60-page, 36 MB sample in
-  `public/samples/large/` freezes the tab; it is kept for testing but not listed in the gallery.
-  Lazy page decoding (as pdf.js does) is the planned fix.
+- **Large TIFF scans**: pages are decoded only as they come near the screen and released when far
+  away, so the 60-page, 36 MB sample opens in under 0.1 s and holds about 5 pages in memory. A page
+  takes a moment to appear the first time it scrolls into view.
 - **Large PDFs**: a 49 MB, 100-page PDF opens in under 1 second; pages are drawn as they scroll in.
 - **View-only is not copy protection**: hiding the Download button stops casual downloads, but a
   browser that can display a file can also save it (developer tools, screenshots, print to PDF).

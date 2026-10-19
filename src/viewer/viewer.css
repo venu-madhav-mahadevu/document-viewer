@@ -261,7 +261,8 @@
 
 /* ---------- TIFF ---------- */
 .dv-tiff { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-.dv-tiff-page { display: block; }
+.dv-tiff-page { display: block; position: relative; }
+.dv-tiff-page canvas { display: block; width: 100%; height: 100%; }
 
 /* ---------- Word / PowerPoint 97-2003 (simplified preview) ---------- */
 .dv-legacy { display: flex; flex-direction: column; align-items: center; gap: 16px; }
