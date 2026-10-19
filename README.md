@@ -63,6 +63,7 @@ in the app sidebar).
 | `exceljs` | `exceljs` | MIT | Excel with styles |
 | `papaparse` | `papaparse` | MIT | CSV |
 | `pptx-jszip` | `jszip` | MIT | PowerPoint text + images |
+| `utif` | `utif` | MIT | TIFF scans (multi-page, fax, LZW) |
 | `viewerjs` | `viewerjs` | MIT | Images (zoom/rotate) |
 
 The alternative libraries (mammoth, exceljs, papaparse, dompurify, highlight.js, viewerjs) are dev
@@ -83,7 +84,7 @@ You can also open one directly, e.g. `http://localhost:5180/?src=/samples/strate
 | Word | `onboarding-guide.docx`, `onboarding-macro.docm`, `onboarding-guide.doc` |
 | Excel | `regional-sales.xlsx`, `branches-macro.xlsm`, `branches-legacy.xls`, `accounts.csv` |
 | PowerPoint | `strategy-deck.pptx`, `strategy-deck.ppt` |
-| Images | `photo.jpg`, `photo-chart.jpeg`, `scanned-contract.tif` (3-page fax-compressed scan), `color-chart.tiff` |
+| Images | `photo.jpg`, `photo-chart.jpeg`, `scanned-contract.tif` (3-page fax-compressed scan), `color-chart.tiff`, `color-scan-jpeg.tif` (JPEG-compressed) |
 | Text | `readme.txt` |
 
 `accounts.csv` deliberately contains a `<script>` payload to show that document content is never

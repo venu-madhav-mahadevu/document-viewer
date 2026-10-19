@@ -25,6 +25,7 @@ export const SAMPLE_GROUPS = [
     ['photo-chart.jpeg', '.jpeg'],
     ['scanned-contract.tif', '.tif 3-page scan (fax G4 compression)'],
     ['color-chart.tiff', '.tiff color (LZW)'],
+    ['color-scan-jpeg.tif', '.tif color scan (JPEG compression)'],
   ] },
   { title: 'Text', files: [
     ['readme.txt', '.txt with Unicode'],

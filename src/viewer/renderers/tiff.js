@@ -12,6 +12,29 @@ import { el } from '../sanitize.js';
  */
 const KEEP_MARGIN = '1500px 0px'; // decode pages within this distance of the screen
 
+// Adobe APP14 marker, transform 0: "these 3 channels are RGB, don't convert from YCbCr".
+const ADOBE_RGB = [0xff, 0xee, 0x00, 0x0e, 0x41, 0x64, 0x6f, 0x62, 0x65, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00];
+
+/**
+ * A complete JPEG file from a TIFF strip/tile: SOI, optional Adobe marker, the
+ * shared JPEGTables (t347) without their SOI/EOI, then the strip without its SOI.
+ */
+function buildJpeg(tables, strip, rgb) {
+  const isSoi = (b, i) => b[i] === 0xff && b[i + 1] === 0xd8;
+  const isEoi = (b, i) => b[i] === 0xff && b[i + 1] === 0xd9;
+  const tableBody = tables
+    ? Uint8Array.from(tables).subarray(isSoi(tables, 0) ? 2 : 0, isEoi(tables, tables.length - 2) ? tables.length - 2 : tables.length)
+    : new Uint8Array(0);
+  const stripBody = isSoi(strip, 0) ? strip.subarray(2) : strip;
+  const marker = rgb ? ADOBE_RGB : [];
+  const out = new Uint8Array(2 + marker.length + tableBody.length + stripBody.length);
+  out.set([0xff, 0xd8], 0);
+  out.set(marker, 2);
+  out.set(tableBody, 2 + marker.length);
+  out.set(stripBody, 2 + marker.length + tableBody.length);
+  return out;
+}
+
 export async function renderTiff({ buffer, mount, scroller }) {
   // Reading the page list is cheap: no pixels are decoded here.
   const ifds = UTIF.decode(buffer).filter((ifd) => ifd.t256 && !(ifd.t254 && (ifd.t254[0] & 1)));
@@ -32,23 +55,59 @@ export async function renderTiff({ buffer, mount, scroller }) {
     return holder;
   });
 
+  const bytes = new Uint8Array(buffer);
+
+  /**
+   * JPEG-compressed TIFF (compression 7): each strip/tile is a JPEG stream. UTIF's
+   * bundled JPEG decoder always applies a YCbCr conversion, which turns RGB-tagged
+   * files pink, so these pages use the browser's own JPEG decoder instead. An Adobe
+   * marker with transform 0 tells it the colors are already RGB.
+   */
+  async function decodeJpegPage(ifd) {
+    const W = ifd.t256[0];
+    const H = ifd.t257[0];
+    const tiled = !!ifd.t322;
+    const offsets = tiled ? ifd.t324 : ifd.t273;
+    const lengths = tiled ? ifd.t325 : ifd.t279;
+    const tileW = tiled ? ifd.t322[0] : W;
+    const tileH = tiled ? ifd.t323[0] : (ifd.t278 ? ifd.t278[0] : H);
+    const across = Math.ceil(W / tileW);
+    const rgb = ifd.t262?.[0] === 2 && (ifd.t277?.[0] ?? 1) >= 3;
+    const canvas = el('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    for (let i = 0; i < offsets.length; i++) {
+      const jpeg = buildJpeg(ifd.t347, bytes.subarray(offsets[i], offsets[i] + lengths[i]), rgb);
+      const bitmap = await createImageBitmap(new Blob([jpeg], { type: 'image/jpeg' }));
+      ctx.drawImage(bitmap, (i % across) * tileW, Math.floor(i / across) * tileH);
+      bitmap.close();
+    }
+    return canvas;
+  }
+
   /** Decode page n into a canvas of the given width (full size when omitted). */
-  function decodePage(n, width) {
+  async function decodePage(n, width) {
     const ifd = ifds[n - 1];
-    UTIF.decodeImage(buffer, ifd, ifds);
-    const rgba = UTIF.toRGBA8(ifd);
-    delete ifd.data; // UTIF keeps the decoded bits on the page object; free them now
-    const full = el('canvas');
-    full.width = ifd.width;
-    full.height = ifd.height;
-    full.getContext('2d').putImageData(
-      new ImageData(new Uint8ClampedArray(rgba.buffer, rgba.byteOffset, ifd.width * ifd.height * 4), ifd.width, ifd.height),
-      0, 0,
-    );
-    if (!width || width >= ifd.width) return full;
+    let full;
+    if (ifd.t259?.[0] === 7 && typeof createImageBitmap === 'function') {
+      full = await decodeJpegPage(ifd);
+    } else {
+      UTIF.decodeImage(buffer, ifd, ifds);
+      const rgba = UTIF.toRGBA8(ifd);
+      delete ifd.data; // UTIF keeps the decoded bits on the page object; free them now
+      full = el('canvas');
+      full.width = ifd.width;
+      full.height = ifd.height;
+      full.getContext('2d').putImageData(
+        new ImageData(new Uint8ClampedArray(rgba.buffer, rgba.byteOffset, ifd.width * ifd.height * 4), ifd.width, ifd.height),
+        0, 0,
+      );
+    }
+    if (!width || width >= full.width) return full;
     const small = el('canvas');
     small.width = width;
-    small.height = Math.round((width * ifd.height) / ifd.width);
+    small.height = Math.round((width * full.height) / full.width);
     small.getContext('2d').drawImage(full, 0, 0, small.width, small.height);
     full.width = 0; // release the full-size pixels
     return small;
@@ -63,10 +122,13 @@ export async function renderTiff({ buffer, mount, scroller }) {
     if (n == null) return;
     wanted.delete(n);
     busy = true;
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
         const holder = pages[n - 1];
-        if (holder.isConnected && !holder.firstChild) holder.append(decodePage(n));
+        if (holder.isConnected && !holder.firstChild) {
+          const canvas = await decodePage(n);
+          if (holder.isConnected && !holder.firstChild) holder.append(canvas);
+        }
       } catch (err) {
         console.warn(`TIFF page ${n} could not be decoded`, err);
       } finally {
@@ -100,13 +162,13 @@ export async function renderTiff({ buffer, mount, scroller }) {
     naturalWidth: () => Math.max(...sizes.map((s) => s.w)),
     async thumbnail(n, width) {
       await yieldToBrowser();
-      return decodePage(n, width * 2);
+      return await decodePage(n, width * 2);
     },
     async printNodes() {
       const nodes = [];
       for (let n = 1; n <= ifds.length; n++) {
         await yieldToBrowser();
-        const canvas = decodePage(n, Math.min(sizes[n - 1].w, 1700)); // ~200 dpi is plenty for paper
+        const canvas = await decodePage(n, Math.min(sizes[n - 1].w, 1700)); // ~200 dpi is plenty for paper
         const img = el('img');
         img.src = canvas.toDataURL('image/png');
         img.alt = `Page ${n}`;
