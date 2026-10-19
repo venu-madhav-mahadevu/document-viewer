@@ -1,8 +1,9 @@
 import './app.css';
-import { createDocViewer } from './viewer/index.js';
+import { createDocViewer, ACCEPT } from './viewer/index.js';
 import { SAMPLE_GROUPS } from './samples.js';
 
 const fileInput = document.getElementById('file-input');
+fileInput.accept = ACCEPT; // only the supported formats
 const list = document.getElementById('file-list');
 const empty = document.getElementById('empty');
 const viewerEl = document.getElementById('viewer');

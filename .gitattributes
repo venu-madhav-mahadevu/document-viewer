@@ -23,3 +23,6 @@
 *.doc binary
 *.ppt binary
 public/samples/download-no-extension binary
+*.tif binary
+*.tiff binary
+*.jpeg binary

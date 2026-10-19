@@ -13,20 +13,21 @@
   "license": "UNLICENSED",
   "type": "module",
   "dependencies": {
+    "cfb": "^1.2.2",
     "docx-preview": "^0.4.1",
     "jszip": "^3.10.2",
     "pdfjs-dist": "^6.4.299",
+    "utif": "^3.1.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
-    "vite": "^8.3.4",
-    "mammoth": "^1.13.0",
-    "exceljs": "^4.4.0",
-    "papaparse": "^5.7.0",
-    "marked": "^18.1.1",
     "dompurify": "^3.4.17",
+    "exceljs": "^4.4.0",
     "highlight.js": "^11.12.0",
-    "viewerjs": "^1.15.2"
+    "mammoth": "^1.13.0",
+    "papaparse": "^5.7.0",
+    "viewerjs": "^1.15.2",
+    "vite": "^8.3.4"
   },
   "private": true,
   "overrides": {

@@ -4,16 +4,25 @@ A browser-based document viewer for PDF, Word, Excel/CSV, PowerPoint, images and
 **entirely from open-source libraries**. It runs 100% client-side: documents are never uploaded,
 and no Google, Microsoft or other third-party service is involved.
 
+**Supported formats (exactly these 15):**
+`.pdf` `.doc` `.docx` `.docm` `.xls` `.xlsx` `.xlsm` `.csv` `.ppt` `.pptx` `.jpg` `.jpeg` `.tif` `.tiff` `.txt`
+
 | Format | Extensions | Engine | License |
 |---|---|---|---|
 | PDF | `.pdf` (incl. password-protected) | [pdf.js](https://github.com/mozilla/pdf.js) | Apache-2.0 |
-| Word | `.docx` `.docm` `.dotx` | [docx-preview](https://github.com/VolodymyrBaydalka/docxjs) | Apache-2.0 |
-| Spreadsheets | `.xlsx` `.xlsm` `.xlsb` `.xls` `.ods` `.csv` `.tsv` | [SheetJS CE](https://sheetjs.com) 0.20.3 | Apache-2.0 |
-| PowerPoint | `.pptx` `.pptm` `.ppsx` `.potx` | In-house renderer (`src/viewer/renderers/pptx.js`) + [JSZip](https://stuk.github.io/jszip/) | MIT |
-| Images | `.png` `.jpg` `.gif` `.webp` `.bmp` `.svg` `.avif` | Browser | - |
-| Text | `.txt` `.json` `.xml` `.md` `.log` `.yaml` `.sql` ... | Browser | - |
+| Word | `.docx` `.docm` | [docx-preview](https://github.com/VolodymyrBaydalka/docxjs) | Apache-2.0 |
+| Word 97-2003 | `.doc` | Text, tables and page breaks read from the binary file with [cfb](https://github.com/SheetJS/js-cfb) (simplified preview) | Apache-2.0 |
+| Excel | `.xlsx` `.xlsm` `.xls` `.csv` | [SheetJS CE](https://sheetjs.com) 0.20.3 | Apache-2.0 |
+| PowerPoint | `.pptx` | In-house renderer (`src/viewer/renderers/pptx.js`) + [JSZip](https://stuk.github.io/jszip/) | MIT |
+| PowerPoint 97-2003 | `.ppt` | Slide titles, text and pictures read with [cfb](https://github.com/SheetJS/js-cfb) (simplified preview) | Apache-2.0 |
+| Images | `.jpg` `.jpeg` | Browser | - |
+| TIFF | `.tif` `.tiff` (multi-page scans, CCITT G3/G4, LZW, JPEG, Deflate) | [UTIF.js](https://github.com/photopea/UTIF.js) | MIT |
+| Text | `.txt` | Browser | - |
 
-Files without an extension (e.g. streamed from an API) are detected from their content.
+Any other file type is rejected with a "not supported" message, and the file picker only offers
+these formats. Files without an extension (e.g. streamed from an API) are identified from their
+content. `.doc` and `.ppt` are binary formats with no open-source browser renderer, so they show a
+clearly labelled simplified preview (content without the original fonts and layout).
 
 **Google Docs-style viewing features** (no extra libraries; built on browser APIs):
 
@@ -55,31 +64,30 @@ in the app sidebar).
 | `papaparse` | `papaparse` | MIT | CSV / TSV |
 | `pptx-jszip` | `jszip` | MIT | PowerPoint text + images |
 | `viewerjs` | `viewerjs` | MIT | Images (zoom/rotate) |
-| `markdown` | `marked` + `dompurify` + `highlight.js` | MIT / Apache-2.0 / BSD-3 | Markdown and code |
 
-The alternative libraries (mammoth, exceljs, papaparse, marked, dompurify, highlight.js, viewerjs)
-are dev dependencies used only by the demos, so the production viewer still ships just four
-libraries. `npm audit --omit=dev` reports 0 vulnerabilities. The full audit flags only `sprintf-js`,
-which belongs to mammoth's command-line tool and never runs in the browser.
+The alternative libraries (mammoth, exceljs, papaparse, dompurify, highlight.js, viewerjs) are dev
+dependencies used only by the demos, so the production viewer ships just its own six libraries
+(pdfjs-dist, docx-preview, xlsx, jszip, cfb, utif). `npm audit --omit=dev` reports 0
+vulnerabilities. The full audit flags only `sprintf-js`, which belongs to mammoth's command-line
+tool and never runs in the browser.
 
 ## Sample files
 
-`public/samples/` has 46 example files, and they are listed on the home screen so you can open each
-one with a click (the **Docs Viewer** title returns to that list). You can also open one directly, e.g.
-`http://localhost:5180/?src=/samples/strategy-deck.pptx`.
+`public/samples/` has 17 example files covering all 15 supported formats. They are listed on the
+home screen so you can open each one with a click (the **Docs Viewer** title returns to that list).
+You can also open one directly, e.g. `http://localhost:5180/?src=/samples/strategy-deck.pptx`.
 
 | Group | Files |
 |---|---|
 | PDF | `quarterly-report.pdf` (12 pages), `mixed-page-sizes.pdf` (Letter/A4, portrait/landscape), `protected-statement.pdf` (password `demo1234`) |
-| Word | `.docx`, `.dotx`, `.docm` |
-| Spreadsheets | `.xlsx`, `.xlsm`, `.xlsb`, `.xls`, `.ods`, `.csv`, `.tsv` |
-| PowerPoint | `.pptx`, `.ppsx`, `.potx`, `.pptm` |
-| Images | `.png`, `.jpg`, `.gif` (animated), `.webp`, `.avif`, `.bmp`, `.ico`, `.svg` |
-| Text & code | `.txt`, `.log`, `.md`, `.json`, `.xml`, `.yaml`, `.yml`, `.ini`, `.cfg`, `.html`, `.htm`, `.css`, `.js`, `.ts`, `.sql` |
-| Detection & unsupported | a PDF with no extension, `.doc`, `.ppt`, `.rtf`, `.zip` |
+| Word | `onboarding-guide.docx`, `onboarding-macro.docm`, `onboarding-guide.doc` |
+| Excel | `regional-sales.xlsx`, `branches-macro.xlsm`, `branches-legacy.xls`, `accounts.csv` |
+| PowerPoint | `strategy-deck.pptx`, `strategy-deck.ppt` |
+| Images | `photo.jpg`, `photo-chart.jpeg`, `scanned-contract.tif` (3-page fax-compressed scan), `color-chart.tiff` |
+| Text | `readme.txt` |
 
-Some samples deliberately contain script payloads (`logo.svg`, `customers.json`, `page.html`,
-`accounts.csv`) to show that document content is never executed.
+`accounts.csv` deliberately contains a `<script>` payload to show that document content is never
+executed.
 
 ## Embedding in another app
 

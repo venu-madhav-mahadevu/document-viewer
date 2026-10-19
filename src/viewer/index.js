@@ -1,5 +1,5 @@
 import './viewer.css';
-import { detectKind } from './detect.js';
+import { detectKind, SUPPORTED_EXTENSIONS } from './detect.js';
 import { el } from './sanitize.js';
 import { icon, setIcon } from './icons.js';
 import { findRanges, paintHighlights, clearHighlights, revealRange } from './search.js';
@@ -12,11 +12,19 @@ const RENDERERS = {
   docx: () => import('./renderers/docx.js').then((m) => m.renderDocx),
   sheet: () => import('./renderers/sheet.js').then((m) => m.renderSheet),
   pptx: () => import('./renderers/pptx.js').then((m) => m.renderPptx),
+  doc: () => import('./renderers/legacy.js').then((m) => m.renderDoc),
+  ppt: () => import('./renderers/legacy.js').then((m) => m.renderPpt),
+  tiff: () => import('./renderers/tiff.js').then((m) => m.renderTiff),
   image: () => import('./renderers/basic.js').then((m) => m.renderImage),
   text: () => import('./renderers/basic.js').then((m) => m.renderText),
 };
 
-const LABELS = { pdf: 'PDF', docx: 'Word', sheet: 'Spreadsheet', pptx: 'Presentation', image: 'Image', text: 'Text' };
+const LABELS = {
+  pdf: 'PDF', docx: 'Word', doc: 'Word 97-2003', sheet: 'Spreadsheet', pptx: 'Presentation',
+  ppt: 'PowerPoint 97-2003', image: 'Image', tiff: 'TIFF', text: 'Text',
+};
+const BADGE_COLOR = { doc: 'docx', ppt: 'pptx' }; // same badge color family as the modern format
+const PAGED = new Set(['pdf', 'docx', 'doc', 'pptx', 'ppt', 'tiff']);
 const ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4];
 
 /**
@@ -222,9 +230,15 @@ export function createDocViewer(container, options = {}) {
     if (search.hits.length && current.kind === 'pdf') selectHit(search.index); // PDF pages were re-laid out
   }
 
+  // While true, the document re-fits whenever the viewer is resized (window
+  // resize, phone rotation, thumbnails toggled). Manual zoom turns it off.
+  let autoFit = false;
+
   function fitWidth() {
-    if (!current) return;
+    if (!current?.controller) return;
+    autoFit = true;
     const available = scroller.clientWidth - 48;
+    if (available <= 0) return; // not laid out yet; the resize observer will fit later
     const c = current.controller;
     if (c.fitWidthZoom) applyZoom(c.fitWidthZoom(available));
     else if (c.naturalWidth) applyZoom(Math.min(available / c.naturalWidth(), current.kind === 'image' ? 1 : 2));
@@ -232,9 +246,18 @@ export function createDocViewer(container, options = {}) {
   }
 
   const step = (dir) => {
+    autoFit = false;
     const next = dir > 0 ? ZOOM_STEPS.find((s) => s > zoom + 0.001) : [...ZOOM_STEPS].reverse().find((s) => s < zoom - 0.001);
     applyZoom(next ?? zoom);
   };
+
+  let lastWidth = 0;
+  new ResizeObserver(() => {
+    const width = scroller.clientWidth;
+    if (width === lastWidth) return;
+    lastWidth = width;
+    if (autoFit) fitWidth();
+  }).observe(scroller);
 
   // ---------- Search ----------
   function openSearch() {
@@ -334,7 +357,7 @@ export function createDocViewer(container, options = {}) {
       await printDocument({
         title: current.name,
         nodes: job.nodes,
-        paged: ['pdf', 'docx', 'pptx'].includes(current.kind),
+        paged: PAGED.has(current.kind),
         landscape: job.landscape,
       });
     } catch (err) {
@@ -448,20 +471,18 @@ export function createDocViewer(container, options = {}) {
         const { blob, name: fileName } = await toBlob(source, name);
         if (blob.size > maxBytes) throw new Error(`This file is larger than ${Math.round(maxBytes / 1048576)} MB.`);
         const buffer = await blob.arrayBuffer();
-        const { kind, legacy } = await detectKind(fileName, buffer);
+        const { kind } = await detectKind(fileName, buffer);
         if (token !== openToken) return;
 
         nameEl.textContent = fileName;
         nameEl.title = fileName;
         badge.textContent = LABELS[kind] || 'File';
-        badge.dataset.kind = kind;
+        badge.dataset.kind = BADGE_COLOR[kind] || kind;
         root.dataset.kind = kind;
 
         if (kind === 'unsupported') {
           current = { controller: null, kind, blob, name: fileName };
-          throw new Error(legacy
-            ? `${legacy} files can't be previewed. Save it as a modern Office file (.docx / .pptx) or PDF, or download it.`
-            : 'This file type can\'t be previewed. You can still download it.');
+          throw new Error(`This file type isn't supported. Supported formats: ${SUPPORTED_EXTENSIONS.map((e) => `.${e}`).join(', ')}.`);
         }
 
         const render = await RENDERERS[kind]();
@@ -474,6 +495,7 @@ export function createDocViewer(container, options = {}) {
         current = { controller, kind, blob, name: fileName };
         setStatus('');
         pill.hidden = false;
+        autoFit = false;
         if (kind === 'sheet' || kind === 'text') applyZoom(1);
         else fitWidth();
         scroller.scrollTop = 0;
@@ -494,7 +516,7 @@ export function createDocViewer(container, options = {}) {
     zoomIn: () => step(1),
     zoomOut: () => step(-1),
     fitWidth,
-    setZoom: applyZoom,
+    setZoom: (z) => { autoFit = false; applyZoom(z); },
     goToPage,
     find: (term) => { openSearch(); searchInput.value = term; return runSearch(term); },
     print: printCurrent,
@@ -506,3 +528,6 @@ export function createDocViewer(container, options = {}) {
     },
   };
 }
+
+// Supported formats, e.g. for <input type="file" accept={ACCEPT}>.
+export { SUPPORTED_EXTENSIONS, ACCEPT } from './detect.js';

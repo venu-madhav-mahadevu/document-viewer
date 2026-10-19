@@ -257,6 +257,37 @@
 .dv-password p { width: 100%; margin: 0 0 4px; }
 .dv-password input { font: inherit; padding: 6px 10px; border: 1px solid var(--dv-border); border-radius: 4px; background: var(--dv-canvas); color: var(--dv-text); }
 
+/* ---------- TIFF ---------- */
+.dv-tiff { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.dv-tiff-page { display: block; }
+
+/* ---------- Word / PowerPoint 97-2003 (simplified preview) ---------- */
+.dv-legacy { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.dv-legacy-notice {
+  width: min(816px, 100%); box-sizing: border-box; padding: 10px 14px; border-radius: 8px;
+  background: #fef7e0; color: #5f4b00; border: 1px solid #f9e2a2; font-size: 13px;
+}
+.dv-legacy-ppt .dv-legacy-notice { width: min(960px, 100%); }
+.dv-legacy-page {
+  width: 816px; min-height: 1056px; box-sizing: border-box; padding: 96px;
+  font: 15px/1.5 Calibri, Carlito, "Segoe UI", Arial, sans-serif; white-space: pre-wrap; overflow-wrap: break-word;
+}
+.dv-legacy-page p { margin: 0 0 8px; }
+.dv-legacy-table { border-collapse: collapse; width: 100%; margin: 0 0 12px; white-space: normal; }
+.dv-legacy-table td { border: 1px solid #9aa0a6; padding: 4px 8px; vertical-align: top; }
+.dv-legacy-slide {
+  position: relative; box-sizing: border-box; padding: 48px 64px;
+  font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
+}
+.dv-legacy-slide h2 { margin: 0 0 24px; font-size: 36px; font-weight: 400; line-height: 1.2; }
+.dv-legacy-slide ul { margin: 0; padding-left: 28px; font-size: 24px; line-height: 1.45; }
+.dv-legacy-empty { color: #80868b; font-size: 18px; }
+.dv-legacy-num { position: absolute; right: 12px; bottom: 8px; font-size: 13px; color: #80868b; }
+.dv-legacy-pictures { width: min(960px, 100%); }
+.dv-legacy-pictures h3 { font-size: 14px; font-weight: 600; color: var(--dv-muted); margin: 8px 0; }
+.dv-legacy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.dv-legacy-grid img { width: 100%; height: 140px; object-fit: contain; background: #fff; box-shadow: var(--dv-shadow); }
+
 /* ---------- Print: only the document, one page per sheet ---------- */
 .dv-print { display: none; }
 @media print {

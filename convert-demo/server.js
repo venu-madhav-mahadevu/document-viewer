@@ -24,10 +24,11 @@ const PDFJS = join(ROOT, 'node_modules', 'pdfjs-dist');
 
 // Formats LibreOffice converts well. Anything else is rejected up front.
 const CONVERTIBLE = new Set([
-  '.doc', '.docx', '.docm', '.dotx', '.odt', '.rtf', '.txt',
-  '.xls', '.xlsx', '.xlsm', '.xlsb', '.ods', '.csv',
-  '.ppt', '.pptx', '.pptm', '.ppsx', '.potx', '.odp',
-  '.png', '.jpg', '.jpeg', '.gif', '.bmp',
+  '.doc', '.docx', '.docm',
+  '.xls', '.xlsx', '.xlsm', '.csv',
+  '.ppt', '.pptx',
+  '.jpg', '.jpeg', '.tif', '.tiff',
+  '.txt',
 ]);
 
 const SECURITY_HEADERS = {
