@@ -132,3 +132,34 @@ table.cmp { border-collapse: collapse; background: var(--surface); font-size: 13
 .cmp tr.cmp-group-used td { background: #ceead6; color: #0d652d; }
 .cmp tr.cmp-group-optional td { background: #f1f3f4; color: var(--muted); }
 .legend-green { display: inline-block; padding: 0 8px; border-radius: 4px; background: #e6f4ea; border-left: 4px solid #188038; color: #0d652d; font-weight: 600; }
+
+/* Device check page */
+.dc-panel { padding: 0 0 12px; margin-bottom: 16px; }
+.dc-panel > *:not(h2) { margin-left: 16px; margin-right: 16px; }
+.dc-panel h2 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dc-info { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin-top: 12px; }
+.dc-info dt { color: var(--muted); }
+.dc-info dd { margin: 0; font-weight: 600; }
+.dc-note { background: #fef7e0; border: 1px solid #f9e2a2; border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+.dc-ua code { font-size: 12px; word-break: break-all; }
+.dc-table-wrap { overflow-x: auto; margin-top: 12px; }
+.dc-table { width: 100%; }
+.dc-table td { white-space: normal; }
+.dc-table td:first-child { width: 28px; text-align: center; }
+tr.dc-ok td { background: #e6f4ea; }
+tr.dc-fail td { background: #fce8e6; }
+tr.dc-warn td { background: #fef7e0; }
+.dc-pill { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 10px; background: #f1f3f4; color: var(--muted); text-transform: none; letter-spacing: 0; }
+.dc-pill-ok { background: #188038; color: #fff; }
+.dc-pill-fail { background: #c5221f; color: #fff; }
+#stage { position: absolute; left: -10000px; top: 0; width: 360px; }
+.controls button#test { background: var(--accent); color: #fff; border-color: var(--accent); }
+.dc-table { table-layout: fixed; }
+.dc-table th, .dc-table td { white-space: normal !important; overflow-wrap: anywhere; vertical-align: top; }
+.dc-table th:nth-child(1), .dc-table td:nth-child(1) { width: 32px; }
+.dc-table th:nth-child(2), .dc-table td:nth-child(2) { width: 34%; }
+.dc-table th:nth-child(3), .dc-table td:nth-child(3) { width: 76px; }
+@media (max-width: 600px) {
+  .dc-table th:nth-child(3), .dc-table td:nth-child(3) { display: none; }
+  .wrap { padding: 16px 12px 40px; }
+}

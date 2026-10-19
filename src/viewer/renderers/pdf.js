@@ -75,7 +75,13 @@ export async function renderPdf({ buffer, mount, scroller, askPassword }) {
       const page = await pdf.getPage(n);
       const scale = zoom * CSS_UNITS;
       const vp = page.getViewport({ scale });
-      const dpr = window.devicePixelRatio || 1;
+      // iOS Safari draws nothing on a canvas over ~16.7 million pixels, which a
+      // zoomed page on a 3x-density iPhone exceeds. Lower the sharpness instead.
+      const MAX_CANVAS_PIXELS = 16_777_216;
+      let dpr = window.devicePixelRatio || 1;
+      if (vp.width * vp.height * dpr * dpr > MAX_CANVAS_PIXELS) {
+        dpr = Math.sqrt(MAX_CANVAS_PIXELS / (vp.width * vp.height));
+      }
 
       const canvas = el('canvas');
       canvas.width = Math.floor(vp.width * dpr);
