@@ -55,10 +55,11 @@ const ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2
  * Everything renders in the browser. No document content is sent anywhere.
  *
  * @param {HTMLElement} container
- * @param {{ maxBytes?: number, download?: boolean, print?: boolean, fetchInit?: RequestInit }} [options]
+ * @param {{ maxBytes?: number, download?: boolean, print?: boolean, fetchInit?: RequestInit, onBack?: () => void }} [options]
+ *   onBack: when given, a Back button appears at the left of the toolbar and calls it.
  */
 export function createDocViewer(container, options = {}) {
-  const { maxBytes = 200 * 1024 * 1024, download = true, print = true, fetchInit } = options;
+  const { maxBytes = 200 * 1024 * 1024, download = true, print = true, fetchInit, onBack } = options;
 
   const iconButton = (name, label, extraClass = '') => {
     const b = el('button', `dv-icon-btn ${extraClass}`.trim());
@@ -98,7 +99,13 @@ export function createDocViewer(container, options = {}) {
   fullscreenBtn.hidden = !document.fullscreenEnabled;
   const actions = el('div', 'dv-actions');
   actions.append(searchBtn, printBtn, downloadBtn, fullscreenBtn);
-  toolbar.append(thumbsBtn, title, actions);
+  const backBtn = el('button', 'dv-back');
+  backBtn.type = 'button';
+  backBtn.append(icon('back'), el('span', null, 'Back'));
+  backBtn.title = 'Back';
+  backBtn.hidden = typeof onBack !== 'function';
+  backBtn.addEventListener('click', () => onBack?.());
+  toolbar.append(backBtn, thumbsBtn, title, actions);
 
   const searchBox = el('form', 'dv-search');
   searchBox.hidden = true;

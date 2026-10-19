@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Client-side document viewer (PDF, Word, Excel, PowerPoint, images, text) - no external services",
   "scripts": {
-    "predev": "node scripts/copy-pdfjs-assets.mjs",
+    "predev": "node scripts/copy-pdfjs-assets.mjs && node scripts/sample-sizes.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/copy-pdfjs-assets.mjs",
+    "prebuild": "node scripts/copy-pdfjs-assets.mjs && node scripts/sample-sizes.mjs",
     "build": "vite build",
     "preview": "vite preview --port 5181"
   },

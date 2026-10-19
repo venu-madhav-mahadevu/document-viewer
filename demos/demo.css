@@ -110,3 +110,12 @@ table.cmp { border-collapse: collapse; background: var(--surface); font-size: 13
 .compare-banner:hover { border-color: var(--accent); }
 .compare-banner strong { color: var(--accent); font-size: 16px; }
 .compare-banner span { font-size: 13px; color: var(--muted); }
+
+/* Back button on every demo page */
+.back-btn {
+  display: inline-flex; align-items: center; gap: 6px; margin: 0 0 12px; padding: 6px 14px 6px 10px;
+  font-weight: 600; font-size: 14px; color: var(--text); text-decoration: none;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+}
+.back-btn:hover { border-color: var(--accent); color: var(--accent); }
+.back-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

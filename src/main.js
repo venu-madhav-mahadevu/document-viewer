@@ -9,7 +9,8 @@ const empty = document.getElementById('empty');
 const viewerEl = document.getElementById('viewer');
 const overlay = document.getElementById('drop-overlay');
 
-const viewer = createDocViewer(viewerEl, { download: false }); // public site: view only
+// Public site: view only. Back returns to the file list (same as the browser Back button).
+const viewer = createDocViewer(viewerEl, { download: false, onBack: () => goBack() });
 const files = [];
 let activeIndex = -1;
 
@@ -33,13 +34,33 @@ function renderList() {
   }));
 }
 
-function show(i) {
-  activeIndex = i;
+function showViewer() {
   empty.hidden = true;
   viewerEl.hidden = false;
+  // One history entry while a document is open, so browser Back returns to the list.
+  if (history.state?.view !== 'doc') history.pushState({ view: 'doc' }, '');
+}
+
+function show(i) {
+  activeIndex = i;
+  showViewer();
   renderList();
   viewer.open(files[i]);
 }
+
+function goHome() {
+  activeIndex = -1;
+  renderList();
+  viewerEl.hidden = true;
+  empty.hidden = false;
+}
+
+function goBack() {
+  if (history.state?.view === 'doc') history.back(); // popstate below shows the list
+  else goHome();
+}
+
+window.addEventListener('popstate', () => { if (history.state?.view !== 'doc') goHome(); });
 
 function add(newFiles) {
   const start = files.length;
@@ -62,6 +83,8 @@ window.addEventListener('drop', (e) => {
 });
 
 const samplesEl = document.getElementById('samples');
+// Exact sample sizes, recorded at build time (scripts/sample-sizes.mjs).
+const sampleSizes = fetch(new URL('samples/sizes.json', document.baseURI)).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
 for (const group of SAMPLE_GROUPS) {
   const box = document.createElement('div');
   box.className = 'sample-group';
@@ -78,12 +101,17 @@ for (const group of SAMPLE_GROUPS) {
     const desc = document.createElement('span');
     desc.className = 'sample-note';
     desc.textContent = note;
-    b.append(name, desc);
+    const size = document.createElement('span');
+    size.className = 'sample-size';
+    const top = document.createElement('span');
+    top.className = 'sample-top';
+    top.append(name, size);
+    b.append(top, desc);
+    sampleSizes.then((sizes) => { if (sizes[file]) size.textContent = formatBytes(sizes[file]); });
     b.addEventListener('click', async () => {
       const fileName = file.split('/').pop();
       // Spinner straight away: large samples take seconds to download.
-      empty.hidden = true;
-      viewerEl.hidden = false;
+      showViewer();
       viewer.loading(`Loading ${fileName}…`, fileName);
       try {
         const res = await fetch(new URL(`samples/${file}`, document.baseURI));
@@ -116,14 +144,8 @@ for (const group of SAMPLE_GROUPS) {
 // Deep link for same-origin documents: /?src=/files/report.pdf
 const src = new URLSearchParams(location.search).get('src');
 if (src) {
-  empty.hidden = true;
-  viewerEl.hidden = false;
+  showViewer();
   viewer.open(src);
 }
 
-document.getElementById('home').addEventListener('click', () => {
-  activeIndex = -1;
-  renderList();
-  viewerEl.hidden = true;
-  empty.hidden = false;
-});
+document.getElementById('home').addEventListener('click', goBack);

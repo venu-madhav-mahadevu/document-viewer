@@ -324,3 +324,14 @@
   .dv-icon-btn { width: 36px; height: 36px; }
   .dv-pill-label { display: none; }
 }
+
+/* Back button (shown when the app passes onBack) */
+.dv-back {
+  display: inline-flex; align-items: center; gap: 6px; flex: none; height: 36px; padding: 0 14px 0 10px;
+  font: 600 14px/1 inherit; font-family: inherit; color: var(--dv-text); background: transparent;
+  border: 1px solid var(--dv-border); border-radius: 18px; cursor: pointer;
+}
+.dv-back:hover { background: var(--dv-hover); }
+.dv-back:focus-visible { outline: 2px solid var(--dv-accent); outline-offset: 2px; }
+.dv-back[hidden] { display: none; }
+@media (max-width: 700px) { .dv-back span { display: none; } .dv-back { padding: 0 8px; } }
