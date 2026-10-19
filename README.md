@@ -61,7 +61,7 @@ in the app sidebar).
 | `mammoth` | `mammoth` + `dompurify` | BSD-2 / Apache-2.0 | Word (clean HTML) |
 | `sheetjs` | `xlsx` (SheetJS CE) | Apache-2.0 | Excel / CSV / ODS |
 | `exceljs` | `exceljs` | MIT | Excel with styles |
-| `papaparse` | `papaparse` | MIT | CSV / TSV |
+| `papaparse` | `papaparse` | MIT | CSV |
 | `pptx-jszip` | `jszip` | MIT | PowerPoint text + images |
 | `viewerjs` | `viewerjs` | MIT | Images (zoom/rotate) |
 
@@ -98,8 +98,9 @@ React, Angular, Vue or plain HTML.
 import { createDocViewer } from './viewer/index.js';
 
 const viewer = createDocViewer(document.getElementById('viewer'), {
-  maxBytes: 200 * 1024 * 1024, // reject larger files
-  download: true,              // show the Download button
+  maxBytes: 200 * 1024 * 1024, // reject larger files (the message states the file's size)
+  download: false,             // view-only: no Download button (the public site uses this)
+  print: true,                 // Print button and Ctrl+P
   fetchInit: { headers: { Authorization: `Bearer ${token}` } }, // for URL sources
 });
 
@@ -128,28 +129,40 @@ The container needs a height; the viewer fills it.
 ## Security
 
 - **No data leaves the browser.** Rendering is local, and the CSP in `index.html` allows no
-  third-party origins (`default-src 'self'`). Mirror that CSP as an HTTP header in production.
+  third-party origins (`default-src 'self'`). `netlify.toml` also sends it as an HTTP header, with
+  `frame-ancestors 'none'` so other sites can't embed the viewer.
 - **No CDNs.** All libraries are bundled at build time, and pdf.js fonts/CMaps/wasm are served from
   your own origin (`scripts/copy-pdfjs-assets.mjs`).
 - **Document content is never executed.** Spreadsheet cells and text files are written with
   `textContent`. Hyperlinks inside documents are restricted to `http`/`https`/`mailto` and open with
-  `noopener noreferrer`. pdf.js runs with `isEvalSupported: false`, and SVGs are shown via `<img>`
-  (no script execution).
+  `noopener noreferrer`. pdf.js runs with `isEvalSupported: false`. Macros in `.docm` / `.xlsm`
+  files are never run.
 - **URL loading is same-origin only**, so `?src=` can't be abused to fetch arbitrary hosts.
-- `npm audit`: 0 vulnerabilities. SheetJS is installed from the official SheetJS registry because
+- `npm audit --omit=dev` (the shipped code): 0 vulnerabilities. The full audit lists 3 moderate
+  findings in `sprintf-js`, used only by mammoth's command-line tool for one demo page, never in the
+  browser. SheetJS is installed from the official SheetJS registry because
   the npm `xlsx@0.18.5` package has unpatched CVEs (CVE-2023-30533, CVE-2024-22363).
 
 ## Known limitations
 
-- **Legacy binary `.doc` / `.ppt`**: no mature open-source browser renderer exists. Users get a
-  clear message and a Download button. `.xls` is supported.
+- **Legacy binary `.doc` / `.ppt`**: no mature open-source browser renderer exists, so they open as a
+  labelled simplified preview (text, tables and slide text; `.ppt` pictures in a gallery) without
+  the original fonts or layout. `.xls` is fully supported.
 - **PowerPoint**: text, placeholders, pictures, shapes, groups, lines, tables, backgrounds and theme
   colors render. Charts, SmartArt, gradients on shapes, table styles, animations and EMF/WMF images
   are shown as labelled placeholders or simplified.
 - **Word**: rendering is HTML-based, so page breaks and complex floating layouts may differ slightly
   from Word.
 - **Spreadsheets**: formulas show the value cached by Excel at save time (they aren't recalculated).
-  Very large sheets display the first 5,000 rows × 256 columns.
+  Very large sheets display the first 5,000 rows × 256 columns. A 50 MB, 370,000-row workbook
+  opens in about 4 to 13 seconds (parsed in a background worker, 77 MB of memory).
+- **Large TIFF scans**: every page is decoded when the file opens, so the 60-page, 36 MB sample in
+  `public/samples/large/` freezes the tab; it is kept for testing but not listed in the gallery.
+  Lazy page decoding (as pdf.js does) is the planned fix.
+- **Large PDFs**: a 49 MB, 100-page PDF opens in under 1 second; pages are drawn as they scroll in.
+- **View-only is not copy protection**: hiding the Download button stops casual downloads, but a
+  browser that can display a file can also save it (developer tools, screenshots, print to PDF).
+  Truly restricted documents need server-side controls such as watermarking or rendering to images.
 
 If full-fidelity Office rendering or editing becomes a requirement, the open-source route is a
 self-hosted **ONLYOFFICE Docs** or **Collabora Online** server (both AGPL; commercial licenses
