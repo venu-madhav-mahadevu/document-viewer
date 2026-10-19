@@ -29,4 +29,10 @@ export const SAMPLE_GROUPS = [
   { title: 'Text', files: [
     ['readme.txt', '.txt with Unicode'],
   ] },
+  // Large-file tests. large/large-scan-60-pages.tif is kept in the folder but not
+  // listed: decoding 60 full-resolution pages at once freezes the tab.
+  { title: 'Large files', files: [
+    ['large/large-report-49mb.pdf', '49 MB, 100 pages'],
+    ['large/large-transactions-50mb.xlsx', '50 MB, 370,000 rows'],
+  ] },
 ];

@@ -1,5 +1,5 @@
 import './app.css';
-import { createDocViewer, ACCEPT } from './viewer/index.js';
+import { createDocViewer, ACCEPT, formatBytes } from './viewer/index.js';
 import { SAMPLE_GROUPS } from './samples.js';
 
 const fileInput = document.getElementById('file-input');
@@ -9,7 +9,7 @@ const empty = document.getElementById('empty');
 const viewerEl = document.getElementById('viewer');
 const overlay = document.getElementById('drop-overlay');
 
-const viewer = createDocViewer(viewerEl);
+const viewer = createDocViewer(viewerEl, { download: false }); // public site: view only
 const files = [];
 let activeIndex = -1;
 
@@ -18,7 +18,13 @@ function renderList() {
     const li = document.createElement('li');
     const b = document.createElement('button');
     b.type = 'button';
-    b.textContent = file.name;
+    const label = document.createElement('span');
+    label.className = 'file-name';
+    label.textContent = file.name;
+    const size = document.createElement('span');
+    size.className = 'file-size';
+    size.textContent = formatBytes(file.size);
+    b.append(label, size);
     b.title = file.name;
     b.setAttribute('aria-current', String(i === activeIndex));
     b.addEventListener('click', () => show(i));
@@ -68,14 +74,14 @@ for (const group of SAMPLE_GROUPS) {
     b.type = 'button';
     const name = document.createElement('span');
     name.className = 'sample-name';
-    name.textContent = file;
+    name.textContent = file.split('/').pop();
     const desc = document.createElement('span');
     desc.className = 'sample-note';
     desc.textContent = note;
     b.append(name, desc);
     b.addEventListener('click', async () => {
       const res = await fetch(new URL(`samples/${file}`, document.baseURI));
-      add([new File([await res.blob()], file)]);
+      add([new File([await res.blob()], file.split('/').pop())]);
     });
     li.append(b);
     ul.append(li);

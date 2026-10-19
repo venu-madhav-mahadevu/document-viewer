@@ -25,7 +25,7 @@ export async function renderImage({ buffer, name, mount }) {
 
 const MAX_TEXT = 5 * 1024 * 1024;
 
-export async function renderText({ buffer, mount }) {
+export async function renderText({ buffer, mount, download }) {
   const truncated = buffer.byteLength > MAX_TEXT;
   let text = new TextDecoder().decode(truncated ? buffer.slice(0, MAX_TEXT) : buffer);
   if (/^\s*[[{]/.test(text) && !truncated) {
@@ -33,7 +33,7 @@ export async function renderText({ buffer, mount }) {
   }
   const page = el('div', 'dv-page dv-text');
   page.append(el('pre', null, text));
-  if (truncated) page.append(el('p', 'dv-note', 'Showing the first 5 MB. Download the file to see everything.'));
+  if (truncated) page.append(el('p', 'dv-note', `Showing the first 5 MB.${download ? ' Download the file to see everything.' : ''}`));
   mount.append(page);
   return { destroy() {} };
 }

@@ -5,15 +5,32 @@ const MAX_ROWS = 5000;
 const MAX_COLS = 256;
 
 /**
+ * Parse in a Web Worker so a 50 MB workbook never freezes the page, and read
+ * only the rows we display (`sheetRows`); `!fullref` still reports the full size.
+ */
+function parseInWorker(buffer, isCsv) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('./sheet.worker.js', import.meta.url), { type: 'module' });
+    worker.onmessage = ({ data }) => {
+      worker.terminate();
+      if (data.ok) resolve(data.wb);
+      else reject(new Error(data.message));
+    };
+    worker.onerror = (e) => {
+      worker.terminate();
+      reject(new Error(e.message || 'This spreadsheet could not be read.'));
+    };
+    worker.postMessage({ buffer, isCsv, maxRows: MAX_ROWS });
+  });
+}
+
+/**
  * Spreadsheet view with Google-Sheets-style column letters, row numbers and
  * sheet tabs. Cells are written with textContent only, so nothing in a cell
  * can ever be interpreted as HTML.
  */
-export async function renderSheet({ buffer, name, mount, onContentChange }) {
-  const isText = /\.csv$/i.test(name);
-  const wb = isText
-    ? XLSX.read(new TextDecoder().decode(buffer), { type: 'string', raw: true })
-    : XLSX.read(buffer, { type: 'array', cellDates: true, cellFormula: false, cellHTML: false });
+export async function renderSheet({ buffer, name, mount, onContentChange, download }) {
+  const wb = await parseInWorker(buffer, /\.csv$/i.test(name));
 
   const root = el('div', 'dv-sheet');
   const grid = el('div', 'dv-sheet-grid');
@@ -33,7 +50,7 @@ export async function renderSheet({ buffer, name, mount, onContentChange }) {
 
   function show(sheetName) {
     buttons.forEach((b) => b.setAttribute('aria-selected', String(b.textContent === sheetName)));
-    grid.replaceChildren(buildTable(wb.Sheets[sheetName]));
+    grid.replaceChildren(buildTable(wb.Sheets[sheetName], download));
     grid.scrollTo(0, 0);
     onContentChange?.();
   }
@@ -46,13 +63,14 @@ export async function renderSheet({ buffer, name, mount, onContentChange }) {
   };
 }
 
-function buildTable(ws) {
+function buildTable(ws, download) {
   const frag = document.createDocumentFragment();
   if (!ws || !ws['!ref']) {
     frag.append(el('p', 'dv-note', 'This sheet is empty.'));
     return frag;
   }
-  const full = XLSX.utils.decode_range(ws['!ref']);
+  // `!fullref` = the sheet's real size when only the first MAX_ROWS were read.
+  const full = XLSX.utils.decode_range(ws['!fullref'] || ws['!ref']);
   const range = {
     s: full.s,
     e: { r: Math.min(full.e.r, full.s.r + MAX_ROWS - 1), c: Math.min(full.e.c, full.s.c + MAX_COLS - 1) },
@@ -103,8 +121,8 @@ function buildTable(ws) {
 
   if (full.e.r > range.e.r || full.e.c > range.e.c) {
     frag.append(el('p', 'dv-note',
-      `Showing the first ${range.e.r - range.s.r + 1} rows and ${range.e.c - range.s.c + 1} columns. ` +
-      'Download the file to see everything.'));
+      `Showing the first ${(range.e.r - range.s.r + 1).toLocaleString()} of ${(full.e.r - full.s.r + 1).toLocaleString()} rows` +
+      ` and ${range.e.c - range.s.c + 1} of ${full.e.c - full.s.c + 1} columns.${download ? ' Download the file to see everything.' : ''}`));
   }
   return frag;
 }

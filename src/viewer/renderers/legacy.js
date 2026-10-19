@@ -45,7 +45,7 @@ function wordText(cfb) {
   const dv = view(wd);
   if (dv.getUint16(0, true) !== 0xa5ec) throw new Error('This is not a Word document.');
   if (dv.getUint16(2, true) < 0x00c1) {
-    throw new Error('Word 6.0/95 documents can\'t be previewed. Please save it as .docx or PDF, or download it.');
+    throw new Error('Word 6.0/95 documents can\'t be previewed. Please save it as .docx or PDF.');
   }
   const flags = dv.getUint16(0x0a, true);
   if (flags & 0x0100) throw new Error('This Word document is password protected and can\'t be previewed.');
@@ -155,12 +155,12 @@ function appendWithBreaks(parent, text) {
   });
 }
 
-export async function renderDoc({ buffer, mount }) {
+export async function renderDoc({ buffer, mount, download }) {
   const cfb = openCompound(buffer);
   const blocks = wordBlocks(CLEAN(stripFields(wordText(cfb))));
 
   const root = el('div', 'dv-legacy');
-  root.append(notice('Text and tables from this Word 97-2003 file are shown without the original fonts, images or layout. Download the file to see it exactly.'));
+  root.append(notice(`Text and tables from this Word 97-2003 file are shown without the original fonts, images or layout.${download ? ' Download the file to see it exactly.' : ''}`));
   mount.append(root);
 
   let page = el('div', 'dv-page dv-legacy-page');
@@ -298,7 +298,7 @@ function pptPictures(cfb) {
 
 const lines = (texts) => texts.flatMap((t) => t.split(/[\r\n]/)).map((s) => s.replace(/\x0b/g, ' ').trim()).filter(Boolean);
 
-export async function renderPpt({ buffer, mount }) {
+export async function renderPpt({ buffer, mount, download }) {
   const cfb = openCompound(buffer);
   const { slides, size } = pptContent(cfb);
   const pictures = pptPictures(cfb);
@@ -307,7 +307,7 @@ export async function renderPpt({ buffer, mount }) {
   const W = 960;
   const H = Math.round((W * size.h) / size.w) || 540;
   const root = el('div', 'dv-legacy dv-legacy-ppt');
-  root.append(notice('Slide text and pictures from this PowerPoint 97-2003 file are shown without the original design. Download the file to see it exactly.'));
+  root.append(notice(`Slide text and pictures from this PowerPoint 97-2003 file are shown without the original design.${download ? ' Download the file to see it exactly.' : ''}`));
   mount.append(root);
 
   const pages = slides.map((slide, i) => {

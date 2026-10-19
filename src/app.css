@@ -41,6 +41,9 @@ body { background: var(--bg); color: var(--text); font: 14px/1.4 "Segoe UI", sys
   border: 0; border-radius: 0 16px 16px 0; padding: 8px 12px; cursor: pointer;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.file-list button { display: flex; align-items: baseline; gap: 8px; }
+.file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.file-size { flex: none; font-size: 12px; color: var(--muted); font-weight: 400; }
 .file-list button:hover { background: rgba(127, 127, 127, 0.12); }
 .file-list button[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .demos-link { color: var(--accent); font-size: 13px; padding: 0 8px; }

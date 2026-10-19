@@ -25,6 +25,23 @@ const LABELS = {
 };
 const BADGE_COLOR = { doc: 'docx', ppt: 'pptx' }; // same badge color family as the modern format
 const PAGED = new Set(['pdf', 'docx', 'doc', 'pptx', 'ppt', 'tiff']);
+/** 1536 → "1.5 KB", 52428800 → "50 MB". */
+export function formatBytes(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ['KB', 'MB', 'GB'];
+  let value = bytes / 1024;
+  let i = 0;
+  while (value >= 1024 && i < units.length - 1) { value /= 1024; i++; }
+  return `${value >= 100 ? Math.round(value) : value.toFixed(1).replace(/\.0$/, '')} ${units[i]}`;
+}
+
+/** 350 → "0.35 s", 2140 → "2.1 s", 21700 → "22 s". */
+export function formatDuration(ms) {
+  if (ms < 1000) return `${(ms / 1000).toFixed(2)} s`;
+  if (ms < 10000) return `${(ms / 1000).toFixed(1)} s`;
+  return `${Math.round(ms / 1000)} s`;
+}
+
 const ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4];
 
 /**
@@ -70,7 +87,8 @@ export function createDocViewer(container, options = {}) {
   const title = el('div', 'dv-title');
   const badge = el('span', 'dv-badge');
   const nameEl = el('span', 'dv-name');
-  title.append(badge, nameEl);
+  const sizeEl = el('span', 'dv-size');
+  title.append(badge, nameEl, sizeEl);
   const searchBtn = iconButton('search', 'Find in document (Ctrl+F)');
   const printBtn = iconButton('print', 'Print (Ctrl+P)');
   const downloadBtn = iconButton('download', 'Download original file');
@@ -465,17 +483,22 @@ export function createDocViewer(container, options = {}) {
     /** Open a File, Blob, ArrayBuffer or same-origin URL. */
     async open(source, name) {
       const token = ++openToken;
+      const started = performance.now();
       reset();
       setStatus('Opening…', 'loading');
       try {
         const { blob, name: fileName } = await toBlob(source, name);
-        if (blob.size > maxBytes) throw new Error(`This file is larger than ${Math.round(maxBytes / 1048576)} MB.`);
+        if (token !== openToken) return;
+        nameEl.textContent = fileName;
+        nameEl.title = fileName;
+        sizeEl.textContent = formatBytes(blob.size);
+        if (blob.size > maxBytes) {
+          throw new Error(`This file is ${formatBytes(blob.size)}; the limit is ${formatBytes(maxBytes)}.`);
+        }
         const buffer = await blob.arrayBuffer();
         const { kind } = await detectKind(fileName, buffer);
         if (token !== openToken) return;
 
-        nameEl.textContent = fileName;
-        nameEl.title = fileName;
         badge.textContent = LABELS[kind] || 'File';
         badge.dataset.kind = BADGE_COLOR[kind] || kind;
         root.dataset.kind = kind;
@@ -488,12 +511,16 @@ export function createDocViewer(container, options = {}) {
         const render = await RENDERERS[kind]();
         stage.classList.add(`dv-stage-${kind}`);
         const controller = await render({
-          buffer, name: fileName, mount: stage, scroller, askPassword,
+          buffer, name: fileName, mount: stage, scroller, askPassword, download,
           onContentChange: () => { if (search.term) runSearch(search.term); },
         });
         if (token !== openToken) { controller.destroy?.(); return; }
         current = { controller, kind, blob, name: fileName };
         setStatus('');
+        // Time from open() to the document being on screen, e.g. "49.2 MB · Loaded in 2.1 s".
+        const loadMs = Math.round(performance.now() - started);
+        sizeEl.textContent = `${formatBytes(blob.size)} · Loaded in ${formatDuration(loadMs)}`;
+        sizeEl.title = `Loaded in ${loadMs.toLocaleString()} ms`;
         pill.hidden = false;
         autoFit = false;
         if (kind === 'sheet' || kind === 'text') applyZoom(1);
