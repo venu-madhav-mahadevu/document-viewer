@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' blob: data:; worker-src 'self' blob:; connect-src 'self' blob: data: ws://localhost:* ws://127.0.0.1:*; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Library compatibility test</title>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="crumbs"><a href="./index.html">All library demos</a> · <a href="../index.html">Docs Viewer app</a></div>
+      <h1>Library compatibility test</h1>
+      <p class="meta">Runs every library on one sample of each of the 15 formats, live in your browser. Nothing is uploaded.
+        <strong>✅</strong> works (time to open) · <strong>⚠</strong> opens but the output is unreadable · <strong>❌</strong> fails.
+        Click a cell to see exactly what that library produced.</p>
+      <div class="controls">
+        <button id="run" type="button">Run all tests</button>
+        <label>Test your own files<input id="own" type="file" multiple /></label>
+        <span id="status" role="status">165 tests (11 libraries × 15 formats), about 20 seconds.</span>
+      </div>
+      <div id="grid" class="cmp-wrap"></div>
+      <section class="panel cmp-preview-panel">
+        <h2 id="preview-title">Preview: click a cell after running the tests</h2>
+        <div id="preview"></div>
+      </section>
+    </div>
+    <div id="scratch" aria-hidden="true"></div>
+    <script type="module" src="./compare.js"></script>
+  </body>
+</html>

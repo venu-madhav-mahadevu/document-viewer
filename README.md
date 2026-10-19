@@ -49,6 +49,11 @@ behind SSO, etc.). No backend is required.
 
 ## Library demos with code
 
+**Compatibility test** (`demos/compare.html`): runs all 11 libraries on one sample of each of the 15
+formats, live in the browser, and shows a pass / unreadable / fail matrix with a preview of every
+result. You can add your own files to test them against every library. Result on the samples: the
+Docs Viewer component opens 15 / 15; each single library opens only its own formats.
+
 `demos/` has one page per open-source library. Each page renders a sample file and shows the code
 that did it, next to the result. Open `http://localhost:5180/demos/` (or **Library demos with code**
 in the app sidebar).
