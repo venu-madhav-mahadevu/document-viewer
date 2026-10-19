@@ -1,11 +1,8 @@
 import { el } from '../sanitize.js';
 
-const IMAGE_MIME = {
-  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp',
-  bmp: 'image/bmp', svg: 'image/svg+xml', avif: 'image/avif', ico: 'image/x-icon',
-};
+const IMAGE_MIME = { jpg: 'image/jpeg', jpeg: 'image/jpeg' };
 
-/** Images (including SVG) are shown via <img>, which never executes embedded script. */
+/** JPEG images are shown via <img>, decoded natively by the browser. */
 export async function renderImage({ buffer, name, mount }) {
   const ext = (name.split('.').pop() || '').toLowerCase();
   const url = URL.createObjectURL(new Blob([buffer], { type: IMAGE_MIME[ext] || '' }));

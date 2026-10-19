@@ -10,7 +10,7 @@ const MAX_COLS = 256;
  * can ever be interpreted as HTML.
  */
 export async function renderSheet({ buffer, name, mount, onContentChange }) {
-  const isText = /\.(csv|tsv)$/i.test(name);
+  const isText = /\.csv$/i.test(name);
   const wb = isText
     ? XLSX.read(new TextDecoder().decode(buffer), { type: 'string', raw: true })
     : XLSX.read(buffer, { type: 'array', cellDates: true, cellFormula: false, cellHTML: false });

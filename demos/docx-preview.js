@@ -15,4 +15,4 @@ async function render(buffer, name, out) {
 }
 // #endregion
 
-setup({ sample: 'onboarding-guide.docx', accept: '.docx,.dotx,.docm', render, source });
+setup({ sample: 'onboarding-guide.docx', accept: '.docx,.docm', render, source });

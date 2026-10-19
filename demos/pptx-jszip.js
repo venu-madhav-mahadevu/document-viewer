@@ -39,4 +39,4 @@ async function render(buffer, name, out) {
 }
 // #endregion
 
-setup({ sample: 'strategy-deck.pptx', accept: '.pptx,.ppsx,.potx,.pptm', render, source });
+setup({ sample: 'strategy-deck.pptx', accept: '.pptx', render, source });

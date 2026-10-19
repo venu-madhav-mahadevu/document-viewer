@@ -11,7 +11,7 @@ async function render(buffer, name, out) {
   viewer?.destroy();
 
   const img = document.createElement('img');
-  img.src = URL.createObjectURL(new Blob([buffer], { type: name.endsWith('.svg') ? 'image/svg+xml' : '' }));
+  img.src = URL.createObjectURL(new Blob([buffer], { type: 'image/jpeg' }));
   img.alt = name;
 
   const box = document.createElement('div');
@@ -29,4 +29,4 @@ async function render(buffer, name, out) {
 }
 // #endregion
 
-setup({ sample: 'photo.jpg', accept: 'image/*', render, source });
+setup({ sample: 'photo.jpg', accept: '.jpg,.jpeg', render, source });

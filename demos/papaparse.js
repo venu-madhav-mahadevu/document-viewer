@@ -26,4 +26,4 @@ async function render(buffer, name, out) {
 }
 // #endregion
 
-setup({ sample: 'accounts.csv', accept: '.csv,.tsv,.txt', render, source });
+setup({ sample: 'accounts.csv', accept: '.csv', render, source });

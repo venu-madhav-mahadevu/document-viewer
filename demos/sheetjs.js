@@ -5,7 +5,7 @@ import source from './sheetjs.js?raw';
 import * as XLSX from 'xlsx';
 
 async function render(buffer, name, out) {
-  // One call reads .xlsx .xlsm .xlsb .xls .ods .csv .tsv
+  // One call reads .xlsx .xlsm .xls .csv
   const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
 
   const tabs = document.createElement('div');
@@ -30,4 +30,4 @@ async function render(buffer, name, out) {
 }
 // #endregion
 
-setup({ sample: 'regional-sales.xlsx', accept: '.xlsx,.xlsm,.xlsb,.xls,.ods,.csv,.tsv', render, source });
+setup({ sample: 'regional-sales.xlsx', accept: '.xlsx,.xlsm,.xls,.csv', render, source });

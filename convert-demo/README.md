@@ -4,7 +4,7 @@ Every document is converted to PDF on **our own server**, then shown with a stan
 each platform. No Google, Microsoft or other third-party service is involved.
 
 ```
-Word / Excel / PowerPoint / .doc / .ppt / .rtf / images
+.doc .docx .docm / .xls .xlsx .xlsm .csv / .ppt .pptx / .jpg .jpeg .tif .tiff / .txt
                 │  POST /api/convert   (server.js)
                 ▼
      Gotenberg (LibreOffice inside)   ← Docker container, internal only
