@@ -1,27 +1,7 @@
-// The only formats the viewer accepts.
-export const SUPPORTED_EXTENSIONS = [
-  'pdf',
-  'doc', 'docx', 'docm',
-  'xls', 'xlsx', 'xlsm', 'csv',
-  'ppt', 'pptx',
-  'jpg', 'jpeg', 'tif', 'tiff',
-  'txt',
-];
+// Supported formats are declared once, in formats.js.
+import { kindForExtension } from './formats.js';
 
-const EXT = {
-  pdf: 'pdf',
-  docx: 'docx', docm: 'docx',
-  doc: 'doc',
-  xlsx: 'sheet', xlsm: 'sheet', xls: 'sheet', csv: 'sheet',
-  pptx: 'pptx',
-  ppt: 'ppt',
-  jpg: 'image', jpeg: 'image',
-  tif: 'tiff', tiff: 'tiff',
-  txt: 'text',
-};
-
-/** Value for <input type="file" accept="…">. */
-export const ACCEPT = SUPPORTED_EXTENSIONS.map((e) => `.${e}`).join(',');
+export { SUPPORTED_EXTENSIONS, ACCEPT } from './formats.js';
 
 export function extensionOf(name = '') {
   const m = /\.([a-z0-9]+)$/i.exec(name);
@@ -38,7 +18,8 @@ const startsWith = (bytes, sig) => sig.every((b, i) => bytes[i] === b);
  */
 export async function detectKind(name, buffer) {
   const ext = extensionOf(name);
-  if (EXT[ext]) return { kind: EXT[ext] };
+  const known = kindForExtension(ext);
+  if (known) return { kind: known };
   if (ext) return { kind: 'unsupported' }; // has an extension we don't support
 
   // No extension: identify the content.

@@ -95,6 +95,14 @@ You can also open one directly, e.g. `http://localhost:5180/?src=/samples/strate
 `accounts.csv` deliberately contains a `<script>` payload to show that document content is never
 executed.
 
+## Where the libraries are declared
+
+All libraries and formats are declared in **one file, `src/viewer/formats.js`**: for each kind of
+document it lists the file extensions, the toolbar label, the library that renders it and how that
+renderer is loaded. File-type detection, the file picker (`ACCEPT`) and the viewer all read from it,
+so adding, removing or swapping a library means editing only that file (plus `package.json` for the
+npm package).
+
 ## Embedding in another app
 
 The viewer is a self-contained module (`src/viewer/`) with no framework dependency, so it drops into

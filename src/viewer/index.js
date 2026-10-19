@@ -1,30 +1,12 @@
 import './viewer.css';
-import { detectKind, SUPPORTED_EXTENSIONS } from './detect.js';
+import { detectKind } from './detect.js';
+import { FORMATS, SUPPORTED_EXTENSIONS } from './formats.js'; // all libraries and formats, declared once
 import { el } from './sanitize.js';
 import { icon, setIcon } from './icons.js';
 import { findRanges, paintHighlights, clearHighlights, revealRange } from './search.js';
 import { createThumbnails, cloneThumbnail } from './thumbs.js';
 import { printDocument } from './print.js';
 
-// Renderers are loaded on demand so opening a PDF never downloads the spreadsheet engine.
-const RENDERERS = {
-  pdf: () => import('./renderers/pdf.js').then((m) => m.renderPdf),
-  docx: () => import('./renderers/docx.js').then((m) => m.renderDocx),
-  sheet: () => import('./renderers/sheet.js').then((m) => m.renderSheet),
-  pptx: () => import('./renderers/pptx.js').then((m) => m.renderPptx),
-  doc: () => import('./renderers/legacy.js').then((m) => m.renderDoc),
-  ppt: () => import('./renderers/legacy.js').then((m) => m.renderPpt),
-  tiff: () => import('./renderers/tiff.js').then((m) => m.renderTiff),
-  image: () => import('./renderers/basic.js').then((m) => m.renderImage),
-  text: () => import('./renderers/basic.js').then((m) => m.renderText),
-};
-
-const LABELS = {
-  pdf: 'PDF', docx: 'Word', doc: 'Word 97-2003', sheet: 'Spreadsheet', pptx: 'Presentation',
-  ppt: 'PowerPoint 97-2003', image: 'Image', tiff: 'TIFF', text: 'Text',
-};
-const BADGE_COLOR = { doc: 'docx', ppt: 'pptx' }; // same badge color family as the modern format
-const PAGED = new Set(['pdf', 'docx', 'doc', 'pptx', 'ppt', 'tiff']);
 /** 1536 → "1.5 KB", 52428800 → "50 MB". */
 export function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`;
@@ -395,7 +377,7 @@ export function createDocViewer(container, options = {}) {
       await printDocument({
         title: current.name,
         nodes: job.nodes,
-        paged: PAGED.has(current.kind),
+        paged: !!FORMATS[current.kind]?.paged,
         landscape: job.landscape,
       });
     } catch (err) {
@@ -520,8 +502,8 @@ export function createDocViewer(container, options = {}) {
         const { kind } = await detectKind(fileName, buffer);
         if (token !== openToken) return;
 
-        badge.textContent = LABELS[kind] || 'File';
-        badge.dataset.kind = BADGE_COLOR[kind] || kind;
+        badge.textContent = FORMATS[kind]?.label || 'File';
+        badge.dataset.kind = FORMATS[kind]?.badge || kind;
         root.dataset.kind = kind;
 
         if (kind === 'unsupported') {
@@ -529,7 +511,7 @@ export function createDocViewer(container, options = {}) {
           throw new Error(`This file type isn't supported. Supported formats: ${SUPPORTED_EXTENSIONS.map((e) => `.${e}`).join(', ')}.`);
         }
 
-        const render = await RENDERERS[kind]();
+        const render = await FORMATS[kind].load();
         stage.classList.add(`dv-stage-${kind}`);
         const controller = await render({
           buffer, name: fileName, mount: stage, scroller, askPassword, download,
@@ -592,4 +574,4 @@ export function createDocViewer(container, options = {}) {
 }
 
 // Supported formats, e.g. for <input type="file" accept={ACCEPT}>.
-export { SUPPORTED_EXTENSIONS, ACCEPT } from './detect.js';
+export { SUPPORTED_EXTENSIONS, ACCEPT, FORMATS, LIBRARIES } from './formats.js';
