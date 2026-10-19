@@ -130,6 +130,11 @@ const LIBS = [
   } },
 ];
 
+// The six libraries the Docs Viewer component uses (shown in green), listed first.
+const USED = new Set(['pdfjs', 'docx-preview', 'sheetjs', 'jszip', 'cfb', 'utif']);
+const ORDER = ['viewer', 'pdfjs', 'docx-preview', 'sheetjs', 'jszip', 'cfb', 'utif', 'mammoth', 'exceljs', 'papaparse', 'img'];
+LIBS.sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
+
 /** Output that "opened" but is mostly binary junk is not a real success. */
 function looksLikeJunk(text) {
   // Raw source of another format shown as text (e.g. a PDF read as CSV rows).
@@ -182,11 +187,22 @@ function drawGrid() {
   }
   head.appendChild(document.createElement('th')).textContent = 'Works';
   const body = t.createTBody();
-  for (const lib of LIBS) {
+  const groupRow = (text, cls) => {
     const tr = body.insertRow();
+    tr.className = 'cmp-group ' + cls;
+    const td = tr.insertCell();
+    td.colSpan = files.length + 2;
+    td.textContent = text;
+  };
+  for (const lib of LIBS) {
+    if (lib.id === 'pdfjs') groupRow('The 6 libraries used inside the Docs Viewer component', 'cmp-group-used');
+    if (lib.id === 'mammoth') groupRow('Optional alternatives (not used in the viewer)', 'cmp-group-optional');
+    const tr = body.insertRow();
+    tr.className = lib.id === 'viewer' ? 'cmp-row-viewer' : USED.has(lib.id) ? 'cmp-row-used' : 'cmp-row-optional';
     const th = document.createElement('th');
     th.scope = 'row';
     th.append(lib.name);
+    if (USED.has(lib.id)) th.append(Object.assign(document.createElement('span'), { className: 'cmp-badge', textContent: 'Used in viewer' }));
     if (lib.note) th.append(Object.assign(document.createElement('small'), { textContent: lib.note }));
     tr.append(th);
     let ok = 0;
