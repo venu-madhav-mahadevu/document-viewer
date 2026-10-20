@@ -37,11 +37,12 @@ const ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2
  * Everything renders in the browser. No document content is sent anywhere.
  *
  * @param {HTMLElement} container
- * @param {{ maxBytes?: number, download?: boolean, print?: boolean, fetchInit?: RequestInit, onBack?: () => void }} [options]
+ * @param {{ maxBytes?: number, download?: boolean, print?: boolean, fetchInit?: RequestInit, onBack?: () => void, badge?: boolean }} [options]
  *   onBack: when given, a Back button appears at the left of the toolbar and calls it.
+ *   badge: show the format label (PDF, Word, Spreadsheet...) next to the file name. Off by default.
  */
 export function createDocViewer(container, options = {}) {
-  const { maxBytes = 200 * 1024 * 1024, download = true, print = true, fetchInit, onBack } = options;
+  const { maxBytes = 200 * 1024 * 1024, download = true, print = true, fetchInit, onBack, badge: showBadge = false } = options;
 
   const iconButton = (name, label, extraClass = '') => {
     const b = el('button', `dv-icon-btn ${extraClass}`.trim());
@@ -69,6 +70,7 @@ export function createDocViewer(container, options = {}) {
   thumbsBtn.setAttribute('aria-pressed', 'false');
   const title = el('div', 'dv-title');
   const badge = el('span', 'dv-badge');
+  badge.hidden = !showBadge; // kept in the DOM (the compare and device pages read it)
   const nameEl = el('span', 'dv-name');
   const sizeEl = el('span', 'dv-size');
   title.append(badge, nameEl, sizeEl);

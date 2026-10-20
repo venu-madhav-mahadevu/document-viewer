@@ -67,7 +67,7 @@
 .dv-name { flex: 0 1 auto; min-width: 3em; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dv-size { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: var(--dv-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .dv-size:empty { display: none; }
-.dv-badge:empty { display: none; }
+.dv-badge:empty, .dv-badge[hidden] { display: none; }
 .dv-badge {
   flex: none; font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
   padding: 2px 8px; border-radius: 4px; color: #fff; background: #5f6368;
