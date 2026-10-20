@@ -230,6 +230,7 @@ export function createDocViewer(container, options = {}) {
   function applyZoom(z) {
     zoom = Math.min(Math.max(z, ZOOM_STEPS[0]), ZOOM_STEPS[ZOOM_STEPS.length - 1]);
     zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+    stage.style.setProperty('--dv-zoom', String(zoom)); // lets hairlines stay 1 screen px when zoomed out
     if (!current) return;
     if (current.controller.setZoom) current.controller.setZoom(zoom);
     // Spreadsheets zoom the grid only, so the sheet tabs stay a usable size.
