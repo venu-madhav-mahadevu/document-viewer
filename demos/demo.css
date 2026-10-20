@@ -195,3 +195,9 @@ tr.dc-warn td { background: #fef7e0; }
 .arch-table th, .arch-table td { white-space: normal !important; vertical-align: top; text-align: left; }
 .arch-plan li { margin: 0 0 8px; }
 .arch-note { background: #e8f0fe; border: 1px solid #c6dafc; border-radius: 8px; padding: 10px 14px; font-size: 14px; }
+.arch-h3 { display: flex; align-items: center; gap: 8px; font-size: 17px; margin: 24px 0 6px; scroll-margin-top: 16px; }
+.arch-dashed { stroke-dasharray: 5 4; }
+.scen { display: inline-block; min-width: 22px; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 700; text-align: center; white-space: nowrap; }
+.scen-a { background: #e8f0fe; color: #1a73e8; }
+.scen-b { background: #fef7e0; color: #b06000; }
+.scen-both { background: #e6f4ea; color: #137333; }

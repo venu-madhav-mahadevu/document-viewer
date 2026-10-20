@@ -15,13 +15,15 @@
 
       <h1>Document Viewer architecture</h1>
       <p class="arch-lead">The current browser-only viewer is a strong foundation. For a regulated enterprise platform, the recommended production design is a <strong>hybrid</strong>: keep this viewer, and add a conversion and security service inside the organization's own network.</p>
-      <p class="arch-note"><strong>Scope:</strong> users only <strong>view</strong> documents that the platform already holds (generated statements and reports, stored files). There is no document upload.</p>
+      <p class="arch-note"><strong>Two scenarios are covered.</strong> <strong>A. View only:</strong> users view documents the platform already holds (generated statements and reports, stored files); there is no upload. <strong>B. With upload:</strong> users can also add their own documents. Most of the design is shared; section 4C lists exactly what changes.</p>
 
       <nav class="arch-toc" aria-label="On this page">
         <a href="#current">Current architecture</a>
         <a href="#strengths">Strengths</a>
         <a href="#gaps">Production gaps</a>
-        <a href="#recommended">Recommended architecture</a>
+        <a href="#view-only">A: View only</a>
+        <a href="#with-upload">B: With upload</a>
+        <a href="#a-vs-b">A vs B</a>
         <a href="#compare">Comparison</a>
         <a href="#plan">Migration plan</a>
         <a href="#questions">Open questions</a>
@@ -103,17 +105,19 @@
       <!-- ===================================================== GAPS -->
       <section id="gaps" class="arch-section">
         <h2>3. Gaps for production use</h2>
+        <p><span class="scen scen-both">A + B</span> applies to both scenarios; <span class="scen scen-b">B only</span> applies only when users can upload.</p>
         <div class="arch-table-wrap"><table class="data arch-table">
-          <thead><tr><th>Gap</th><th>Risk</th><th>Fix</th></tr></thead>
+          <thead><tr><th>Scenario</th><th>Gap</th><th>Risk</th><th>Fix</th></tr></thead>
           <tbody>
-            <tr><td>Word, PowerPoint and old Office files are approximate (two custom renderers; .doc/.ppt simplified)</td><td>Official or legal documents may look different from the original</td><td>Convert to PDF on the server; show the PDF</td></tr>
-            <tr><td>Documents from other systems (some originally from outside the organization) are parsed in the same page as the user's session</td><td>A library bug triggered by a malformed file could reach session data</td><td>Host the viewer on a separate domain in a sandboxed iframe</td></tr>
-            <tr><td>View-only is not real protection</td><td>Users can still save, screenshot or print</td><td>Watermarks (user, time) and access rules on the server</td></tr>
-            <tr><td>No audit trail</td><td>Regulated platforms must log who viewed what</td><td>Log on the server when the document is requested</td></tr>
-            <tr><td>Files received from outside (e.g. partners) are not scanned</td><td>A malicious file entering the platform</td><td>Scan when a file enters the platform, before anyone can view it</td></tr>
-            <tr><td>Accessibility not yet audited</td><td>WCAG 2.1 AA is usually mandatory</td><td>Keyboard, screen reader and contrast audit</td></tr>
-            <tr><td>Two custom renderers to maintain</td><td>Long-term upkeep</td><td>Fewer formats rendered in the browser once PDFs come from the server</td></tr>
-            <tr><td>Mobile browsers need iOS 17.4+ / Chrome 119+</td><td>Older devices; native apps</td><td>Native apps show the server PDF with PDFKit (iOS) / PdfRenderer (Android)</td></tr>
+            <tr><td><span class="scen scen-both">A + B</span></td><td>Word, PowerPoint and old Office files are approximate (two custom renderers; .doc/.ppt simplified)</td><td>Official or legal documents may look different from the original</td><td>Convert to PDF on the server; show the PDF</td></tr>
+            <tr><td><span class="scen scen-both">A + B</span></td><td>Files are parsed in the same page as the user's session (A: files from other systems; B: user uploads, higher risk)</td><td>A library bug triggered by a malformed file could reach session data</td><td>Host the viewer on a separate domain in a sandboxed iframe (required for B)</td></tr>
+            <tr><td><span class="scen scen-both">A + B</span></td><td>View-only is not real protection</td><td>Users can still save, screenshot or print</td><td>Watermarks (user, time) and access rules on the server</td></tr>
+            <tr><td><span class="scen scen-both">A + B</span></td><td>No audit trail</td><td>Regulated platforms must log who viewed (and, for B, who uploaded) what</td><td>Log on the server when documents are uploaded and requested</td></tr>
+            <tr><td><span class="scen scen-both">A + B</span></td><td>No malware scanning</td><td>A: a malicious file received from outside; B: a malicious user upload</td><td>A: scan files entering from outside; B: scan every upload before anyone can view it</td></tr>
+            <tr><td><span class="scen scen-b">B only</span></td><td>No server-side checks on uploaded files</td><td>Unsupported, oversized, encrypted or disguised files reach storage and viewers</td><td>Validate on the server: allowed formats (15), size limit, real file type, encryption; quarantine until scanned</td></tr>
+            <tr><td><span class="scen scen-both">A + B</span></td><td>Accessibility not yet audited</td><td>WCAG 2.1 AA is usually mandatory</td><td>Keyboard, screen reader and contrast audit</td></tr>
+            <tr><td><span class="scen scen-both">A + B</span></td><td>Two custom renderers to maintain</td><td>Long-term upkeep</td><td>A: used only as a fallback; B: also used for the instant preview while the server converts</td></tr>
+            <tr><td><span class="scen scen-both">A + B</span></td><td>Mobile browsers need iOS 17.4+ / Chrome 119+</td><td>Older devices; native apps</td><td>Native apps show the server PDF with PDFKit (iOS) / PdfRenderer (Android)</td></tr>
           </tbody>
         </table></div>
       </section>
@@ -121,7 +125,10 @@
       <!-- ===================================================== RECOMMENDED -->
       <section id="recommended" class="arch-section">
         <h2>4. Recommended architecture: hybrid</h2>
-        <p>A conversion and security service inside the organization's network prepares every document the platform holds; the browser and mobile apps then show one accurate PDF version, while spreadsheets keep their interactive grid.</p>
+        <p>Both scenarios use the same core: an internal conversion and security service, one PDF version per document, pdf.js for paged documents, the SheetJS grid for Excel/CSV, and native viewers on mobile.</p>
+
+        <h3 id="view-only" class="arch-h3"><span class="scen scen-a">A</span> View only (no upload)</h3>
+        <p>Documents come from the platform's own systems. The service collects each document when it is created or received, converts it to PDF, stores both versions and controls access.</p>
         <figure class="arch-figure">
           <svg viewBox="0 0 760 470" role="img" aria-labelledby="rec-title rec-desc">
             <title id="rec-title">Recommended hybrid architecture</title>
@@ -169,6 +176,80 @@
           </svg>
           <figcaption>Almost nothing from the POC is thrown away: the viewer UI, pdf.js, SheetJS and formats.js carry over; the conversion server is already prototyped in convert-demo/.</figcaption>
         </figure>
+
+        <h3 id="with-upload" class="arch-h3"><span class="scen scen-b">B</span> With upload</h3>
+        <p>Users can add their own documents. Every upload is validated and scanned before it is converted and stored; the browser can show an instant preview to the uploading user meanwhile.</p>
+        <figure class="arch-figure">
+          <svg viewBox="0 0 760 520" role="img" aria-labelledby="up-title up-desc">
+            <title id="up-title">Recommended architecture with upload</title>
+            <desc id="up-desc">A user uploads a document. The browser can show an instant preview while the internal service validates, scans, converts, stores and controls it. The web viewer and mobile apps then show the PDF.</desc>
+            <defs>
+              <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="arch-arrowhead"/></marker>
+            </defs>
+
+            <rect x="20" y="20" width="180" height="70" rx="8" class="arch-box"/>
+            <text x="110" y="50" class="arch-t1" text-anchor="middle">User uploads</text>
+            <text x="110" y="70" class="arch-t2" text-anchor="middle">a document (15 formats)</text>
+
+            <rect x="250" y="20" width="300" height="70" rx="8" class="arch-box arch-dashed"/>
+            <text x="400" y="50" class="arch-t1" text-anchor="middle">Instant preview (optional)</text>
+            <text x="400" y="70" class="arch-t2" text-anchor="middle">current browser renderers, before upload finishes</text>
+
+            <rect x="20" y="120" width="720" height="170" rx="14" class="arch-zone arch-zone-server"/>
+            <text x="40" y="146" class="arch-zone-label">Internal service (organization's own network, no third parties)</text>
+            <rect x="40" y="160" width="128" height="64" rx="8" class="arch-box"/><text x="104" y="188" text-anchor="middle" class="arch-t1">1. Validate</text><text x="104" y="207" text-anchor="middle" class="arch-t2">type, size, encryption</text>
+            <rect x="178" y="160" width="128" height="64" rx="8" class="arch-box"/><text x="242" y="188" text-anchor="middle" class="arch-t1">2. Scan</text><text x="242" y="207" text-anchor="middle" class="arch-t2">malware, quarantine</text>
+            <rect x="316" y="160" width="128" height="64" rx="8" class="arch-box"/><text x="380" y="188" text-anchor="middle" class="arch-t1">3. Convert</text><text x="380" y="207" text-anchor="middle" class="arch-t2">Office/TIFF → PDF</text>
+            <rect x="454" y="160" width="128" height="64" rx="8" class="arch-box"/><text x="518" y="188" text-anchor="middle" class="arch-t1">4. Store</text><text x="518" y="207" text-anchor="middle" class="arch-t2">original + PDF</text>
+            <rect x="592" y="160" width="128" height="64" rx="8" class="arch-box"/><text x="656" y="188" text-anchor="middle" class="arch-t1">5. Control</text><text x="656" y="207" text-anchor="middle" class="arch-t2">access, audit</text>
+            <text x="173" y="252" text-anchor="middle" class="arch-t2">rejected files never reach storage</text>
+            <text x="380" y="252" text-anchor="middle" class="arch-t2">LibreOffice / Gotenberg</text>
+            <text x="587" y="252" text-anchor="middle" class="arch-t2">who uploaded, who viewed; optional watermark</text>
+
+            <rect x="20" y="320" width="440" height="180" rx="14" class="arch-zone"/>
+            <text x="40" y="346" class="arch-zone-label">Web viewer (separate domain, sandboxed iframe)</text>
+            <rect x="40" y="364" width="128" height="66" rx="8" class="arch-box arch-accent"/><text x="104" y="392" text-anchor="middle" class="arch-t1">pdf.js</text><text x="104" y="411" text-anchor="middle" class="arch-t2">all paged docs</text>
+            <rect x="182" y="364" width="128" height="66" rx="8" class="arch-box arch-accent"/><text x="246" y="392" text-anchor="middle" class="arch-t1">SheetJS grid</text><text x="246" y="411" text-anchor="middle" class="arch-t2">Excel / CSV data</text>
+            <rect x="324" y="364" width="120" height="66" rx="8" class="arch-box"/><text x="384" y="392" text-anchor="middle" class="arch-t1">Browser</text><text x="384" y="411" text-anchor="middle" class="arch-t2">images</text>
+            <text x="240" y="462" text-anchor="middle" class="arch-t2">Same viewer UI: thumbnails, search, print, zoom</text>
+
+            <rect x="490" y="320" width="250" height="180" rx="14" class="arch-zone"/>
+            <text x="510" y="346" class="arch-zone-label">Mobile apps (native)</text>
+            <rect x="510" y="364" width="100" height="66" rx="8" class="arch-box"/><text x="560" y="392" text-anchor="middle" class="arch-t1">iOS</text><text x="560" y="411" text-anchor="middle" class="arch-t2">PDFKit</text>
+            <rect x="622" y="364" width="100" height="66" rx="8" class="arch-box"/><text x="672" y="392" text-anchor="middle" class="arch-t1">Android</text><text x="672" y="411" text-anchor="middle" class="arch-t2">PdfRenderer</text>
+            <text x="615" y="462" text-anchor="middle" class="arch-t2">Same PDF from the service</text>
+
+            <g class="arch-lines">
+              <path d="M200 55H250" marker-end="url(#a3)"/>
+              <path d="M110 90V160" marker-end="url(#a3)"/>
+              <path d="M168 192H178" marker-end="url(#a3)"/>
+              <path d="M306 192H316" marker-end="url(#a3)"/>
+              <path d="M444 192H454" marker-end="url(#a3)"/>
+              <path d="M582 192H592" marker-end="url(#a3)"/>
+              <path d="M380 290V305H240V320" marker-end="url(#a3)"/>
+              <path d="M380 305H615V320" marker-end="url(#a3)"/>
+            </g>
+            <text x="118" y="112" class="arch-t2">upload</text>
+          </svg>
+          <figcaption>Validation and scanning come first, so rejected or malicious files never reach storage or any viewer. The instant preview runs only in the uploading user's own browser.</figcaption>
+        </figure>
+
+        <h3 id="a-vs-b" class="arch-h3">4C. What changes between A and B</h3>
+        <div class="arch-table-wrap"><table class="data arch-table">
+          <thead><tr><th></th><th><span class="scen scen-a">A</span> View only</th><th><span class="scen scen-b">B</span> With upload</th></tr></thead>
+          <tbody>
+            <tr><td>Where documents come from</td><td>Platform systems (generated, stored, received from partners)</td><td>Platform systems + users</td></tr>
+            <tr><td>Server validation</td><td>Not needed for known internal sources</td><td>Required: allowed formats (15), size limit, real file type, encryption</td></tr>
+            <tr><td>Malware scan</td><td>Files entering from outside the organization</td><td>Every upload, in quarantine, before anyone can view it</td></tr>
+            <tr><td>When conversion runs</td><td>When a document is created or received (batch)</td><td>On each upload (a few seconds per file)</td></tr>
+            <tr><td>Instant preview</td><td>Not needed</td><td>Optional: current browser renderers show the file at once while the server converts</td></tr>
+            <tr><td>Viewer isolation (separate domain, sandbox)</td><td>Recommended</td><td>Required: user files are untrusted</td></tr>
+            <tr><td>Storage</td><td>Platform storage</td><td>Plus a quarantine area until the scan passes</td></tr>
+            <tr><td>Audit log</td><td>Who viewed what</td><td>Who uploaded and who viewed what</td></tr>
+            <tr><td>Browser libraries</td><td>pdf.js + SheetJS (others as fallback)</td><td>pdf.js + SheetJS + current renderers for the instant preview</td></tr>
+            <tr><td>Effort</td><td>Lower</td><td>Higher: validation, quarantine, upload UI and limits</td></tr>
+          </tbody>
+        </table></div>
       </section>
 
       <!-- ===================================================== COMPARE -->
@@ -195,7 +276,7 @@
         <ol class="arch-plan">
           <li><strong>Phase 1: POC as preview (done).</strong> Browser viewer for all 15 formats, compatibility test, device check.</li>
           <li><strong>Phase 2: conversion service.</strong> Internal container with LibreOffice/Gotenberg; store a PDF version of every Office and TIFF document the platform holds; the viewer shows the PDF and keeps the grid for Excel/CSV.</li>
-          <li><strong>Phase 3: security and compliance.</strong> Viewer on a separate domain in a sandboxed iframe, malware scan when files enter the platform, access checks, audit log, optional watermark.</li>
+          <li><strong>Phase 3: security and compliance.</strong> Viewer on a separate domain in a sandboxed iframe, malware scan when files enter the platform, access checks, audit log, optional watermark. <em>With upload (B):</em> also server validation, quarantine and scanning of every upload, plus upload limits.</li>
           <li><strong>Phase 4: quality.</strong> Automated tests for all formats (Playwright), WCAG 2.1 AA audit, real-device testing on iOS and Android.</li>
           <li><strong>Phase 5: mobile apps.</strong> Native viewers (PDFKit / PdfRenderer) on the same PDF versions.</li>
         </ol>
