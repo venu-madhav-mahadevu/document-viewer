@@ -6,8 +6,8 @@ const list = document.getElementById('file-list');
 const empty = document.getElementById('empty');
 const viewerEl = document.getElementById('viewer');
 
-// Public site: view only. Back returns to the file list (same as the browser Back button).
-const viewer = createDocViewer(viewerEl, { download: false, onBack: () => goBack() });
+// Download button on; Back returns to the file list (same as the browser Back button).
+const viewer = createDocViewer(viewerEl, { download: true, onBack: () => goBack() });
 const files = [];
 let activeIndex = -1;
 

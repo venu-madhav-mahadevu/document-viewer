@@ -77,11 +77,11 @@ dependencies used only by the demos, so the production viewer ships just its own
 vulnerabilities. The full audit flags only `sprintf-js`, which belongs to mammoth's command-line
 tool and never runs in the browser.
 
-## View only
+## Opening documents
 
-The demo app is view only: visitors open the documents listed on the home screen (or a same-origin
+The demo app opens only the platform's documents: visitors open the documents listed on the home screen (or a same-origin
 link such as `?src=/samples/report.pdf`). There is no way to open files from the visitor's computer,
-dropped files are blocked, and the Download button is hidden. Developers embedding the component can
+dropped files are blocked. The Download button saves the original file. Developers embedding the component can
 still call `viewer.open(file)` with any File, Blob or URL their application provides.
 
 ## Sample files
@@ -120,7 +120,7 @@ import { createDocViewer } from './viewer/index.js';
 
 const viewer = createDocViewer(document.getElementById('viewer'), {
   maxBytes: 200 * 1024 * 1024, // reject larger files (the message states the file's size)
-  download: false,             // view-only: no Download button (the public site uses this)
+  download: true,              // Download button (set false for view-only)
   print: true,                 // Print button and Ctrl+P
   fetchInit: { headers: { Authorization: `Bearer ${token}` } }, // for URL sources
 });
