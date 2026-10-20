@@ -272,13 +272,8 @@
 .dv-tiff-page { display: block; position: relative; }
 .dv-tiff-page canvas { display: block; width: 100%; height: 100%; }
 
-/* ---------- Word / PowerPoint 97-2003 (simplified preview) ---------- */
+/* ---------- Word / PowerPoint 97-2003 ---------- */
 .dv-legacy { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-.dv-legacy-notice {
-  width: min(816px, 100%); box-sizing: border-box; padding: 10px 14px; border-radius: 8px;
-  background: #fef7e0; color: #5f4b00; border: 1px solid #f9e2a2; font-size: 13px;
-}
-.dv-legacy-ppt .dv-legacy-notice { width: min(960px, 100%); }
 .dv-legacy-page {
   width: 816px; min-height: 1056px; box-sizing: border-box; padding: 96px;
   font: 15px/1.5 Calibri, Carlito, "Segoe UI", Arial, sans-serif; white-space: pre-wrap; overflow-wrap: break-word;

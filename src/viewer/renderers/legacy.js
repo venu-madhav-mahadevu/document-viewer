@@ -8,7 +8,7 @@ import { clonePagesForPrint, PAGE_WIDTH, PAGE_WIDTH_LANDSCAPE } from '../print.j
  * These are binary "compound files" (CFB, read with SheetJS's open-source
  * `cfb`). No open-source browser library reproduces their layout, so this
  * shows the content - text, paragraphs, tables, slide titles/bullets and
- * pictures - with a clear "simplified preview" notice.
+ * pictures - laid out as pages.
  */
 
 const cp1252 = new TextDecoder('windows-1252');
@@ -29,12 +29,6 @@ function stream(cfb, name) {
 
 const view = (bytes) => new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 
-function notice(text) {
-  const n = el('div', 'dv-legacy-notice');
-  n.setAttribute('role', 'note');
-  n.append(el('strong', null, 'Simplified preview. '), document.createTextNode(text));
-  return n;
-}
 
 // ===================================================================== .doc
 
@@ -155,12 +149,11 @@ function appendWithBreaks(parent, text) {
   });
 }
 
-export async function renderDoc({ buffer, mount, download }) {
+export async function renderDoc({ buffer, mount }) {
   const cfb = openCompound(buffer);
   const blocks = wordBlocks(CLEAN(stripFields(wordText(cfb))));
 
   const root = el('div', 'dv-legacy');
-  root.append(notice(`Text and tables from this Word 97-2003 file are shown without the original fonts, images or layout.${download ? ' Download the file to see it exactly.' : ''}`));
   mount.append(root);
 
   // Lay the content out on Letter-sized pages, like a PDF: a new page starts at
@@ -316,7 +309,7 @@ function pptPictures(cfb) {
 
 const lines = (texts) => texts.flatMap((t) => t.split(/[\r\n]/)).map((s) => s.replace(/\x0b/g, ' ').trim()).filter(Boolean);
 
-export async function renderPpt({ buffer, mount, download }) {
+export async function renderPpt({ buffer, mount }) {
   const cfb = openCompound(buffer);
   const { slides, size } = pptContent(cfb);
   const pictures = pptPictures(cfb);
@@ -325,7 +318,6 @@ export async function renderPpt({ buffer, mount, download }) {
   const W = 960;
   const H = Math.round((W * size.h) / size.w) || 540;
   const root = el('div', 'dv-legacy dv-legacy-ppt');
-  root.append(notice(`Slide text and pictures from this PowerPoint 97-2003 file are shown without the original design.${download ? ' Download the file to see it exactly.' : ''}`));
   mount.append(root);
 
   const pages = slides.map((slide, i) => {
