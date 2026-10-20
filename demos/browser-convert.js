@@ -9,7 +9,7 @@ import source from './browser-convert.js?raw';
 import { WorkerBrowserConverter } from '@matbee/libreoffice-converter/browser';
 
 // Engine files are served from our own origin (copied by scripts/copy-lo-assets.mjs).
-const lo = (file) => new URL(`../lo/${file}`, location.href).href;
+const lo = (file) => new URL(`./lo/${file}`, location.href).href;
 
 const options = {
   sofficeJs: lo('soffice.js'),

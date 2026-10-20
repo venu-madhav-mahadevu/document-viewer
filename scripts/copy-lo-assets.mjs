@@ -1,5 +1,5 @@
 // Copies the LibreOffice WebAssembly engine (@matbee/libreoffice-converter) into
-// public/lo/ so the browser-convert demo serves it from our own origin.
+// public/demos/lo/ (inside the coi-serviceworker scope) so the browser-convert demo serves it from our own origin.
 // About 250 MB - kept out of git (.gitignore); copied again only when a file changed.
 import { copyFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = join(root, 'node_modules', '@matbee', 'libreoffice-converter');
-const dest = join(root, 'public', 'lo');
+const dest = join(root, 'public', 'demos', 'lo');
 
 const files = [
   ['wasm/soffice.js', 'soffice.js'],
@@ -31,5 +31,5 @@ if (!existsSync(pkg)) {
   // cannot send COOP/COEP headers (GitHub Pages).
   mkdirSync(join(root, 'public', 'demos'), { recursive: true });
   copyFileSync(join(root, 'node_modules', 'coi-serviceworker', 'coi-serviceworker.min.js'), join(root, 'public', 'demos', 'coi-serviceworker.js'));
-  console.log('LibreOffice engine copied to public/lo');
+  console.log('LibreOffice engine copied to public/demos/lo');
 }
