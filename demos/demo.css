@@ -194,3 +194,4 @@ tr.dc-warn td { background: #fef7e0; }
 .arch-table { width: 100%; }
 .arch-table th, .arch-table td { white-space: normal !important; vertical-align: top; text-align: left; }
 .arch-plan li { margin: 0 0 8px; }
+.arch-note { background: #e8f0fe; border: 1px solid #c6dafc; border-radius: 8px; padding: 10px 14px; font-size: 14px; }

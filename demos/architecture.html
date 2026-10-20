@@ -15,6 +15,7 @@
 
       <h1>Document Viewer architecture</h1>
       <p class="arch-lead">The current browser-only viewer is a strong foundation. For a regulated enterprise platform, the recommended production design is a <strong>hybrid</strong>: keep this viewer, and add a conversion and security service inside the organization's own network.</p>
+      <p class="arch-note"><strong>Scope:</strong> users only <strong>view</strong> documents that the platform already holds (generated statements and reports, stored files). There is no document upload.</p>
 
       <nav class="arch-toc" aria-label="On this page">
         <a href="#current">Current architecture</a>
@@ -106,10 +107,10 @@
           <thead><tr><th>Gap</th><th>Risk</th><th>Fix</th></tr></thead>
           <tbody>
             <tr><td>Word, PowerPoint and old Office files are approximate (two custom renderers; .doc/.ppt simplified)</td><td>Official or legal documents may look different from the original</td><td>Convert to PDF on the server; show the PDF</td></tr>
-            <tr><td>Untrusted uploads are parsed in the same page as the user's session</td><td>A library bug could reach session data</td><td>Host the viewer on a separate domain in a sandboxed iframe</td></tr>
+            <tr><td>Documents from other systems (some originally from outside the organization) are parsed in the same page as the user's session</td><td>A library bug triggered by a malformed file could reach session data</td><td>Host the viewer on a separate domain in a sandboxed iframe</td></tr>
             <tr><td>View-only is not real protection</td><td>Users can still save, screenshot or print</td><td>Watermarks (user, time) and access rules on the server</td></tr>
             <tr><td>No audit trail</td><td>Regulated platforms must log who viewed what</td><td>Log on the server when the document is requested</td></tr>
-            <tr><td>No malware scanning</td><td>Malicious uploads</td><td>Scan on upload, before anything is shown</td></tr>
+            <tr><td>Files received from outside (e.g. partners) are not scanned</td><td>A malicious file entering the platform</td><td>Scan when a file enters the platform, before anyone can view it</td></tr>
             <tr><td>Accessibility not yet audited</td><td>WCAG 2.1 AA is usually mandatory</td><td>Keyboard, screen reader and contrast audit</td></tr>
             <tr><td>Two custom renderers to maintain</td><td>Long-term upkeep</td><td>Fewer formats rendered in the browser once PDFs come from the server</td></tr>
             <tr><td>Mobile browsers need iOS 17.4+ / Chrome 119+</td><td>Older devices; native apps</td><td>Native apps show the server PDF with PDFKit (iOS) / PdfRenderer (Android)</td></tr>
@@ -120,22 +121,22 @@
       <!-- ===================================================== RECOMMENDED -->
       <section id="recommended" class="arch-section">
         <h2>4. Recommended architecture: hybrid</h2>
-        <p>A conversion and security service inside the organization's network prepares every document; the browser and mobile apps then show one accurate PDF version, while spreadsheets keep their interactive grid.</p>
+        <p>A conversion and security service inside the organization's network prepares every document the platform holds; the browser and mobile apps then show one accurate PDF version, while spreadsheets keep their interactive grid.</p>
         <figure class="arch-figure">
           <svg viewBox="0 0 760 470" role="img" aria-labelledby="rec-title rec-desc">
             <title id="rec-title">Recommended hybrid architecture</title>
-            <desc id="rec-desc">Documents go to an internal service that scans, converts to PDF, stores and logs them. A sandboxed web viewer and native mobile apps then display the PDF, with spreadsheets shown as an interactive grid.</desc>
+            <desc id="rec-desc">Documents from the platform go to an internal service that collects, converts to PDF, stores and logs them. A sandboxed web viewer and native mobile apps then display the PDF, with spreadsheets shown as an interactive grid.</desc>
             <defs>
               <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="arch-arrowhead"/></marker>
             </defs>
 
             <rect x="20" y="20" width="150" height="70" rx="8" class="arch-box"/>
             <text x="95" y="50" class="arch-t1" text-anchor="middle">Document</text>
-            <text x="95" y="70" class="arch-t2" text-anchor="middle">uploaded or generated</text>
+            <text x="95" y="70" class="arch-t2" text-anchor="middle">from the platform</text>
 
             <rect x="200" y="8" width="540" height="200" rx="14" class="arch-zone arch-zone-server"/>
             <text x="220" y="34" class="arch-zone-label">Internal service (organization's own network, no third parties)</text>
-            <rect x="220" y="52" width="118" height="64" rx="8" class="arch-box"/><text x="279" y="80" text-anchor="middle" class="arch-t1">1. Scan</text><text x="279" y="99" text-anchor="middle" class="arch-t2">malware check</text>
+            <rect x="220" y="52" width="118" height="64" rx="8" class="arch-box"/><text x="279" y="80" text-anchor="middle" class="arch-t1">1. Collect</text><text x="279" y="99" text-anchor="middle" class="arch-t2">internal systems</text>
             <rect x="350" y="52" width="118" height="64" rx="8" class="arch-box"/><text x="409" y="80" text-anchor="middle" class="arch-t1">2. Convert</text><text x="409" y="99" text-anchor="middle" class="arch-t2">Office/TIFF → PDF</text>
             <rect x="480" y="52" width="118" height="64" rx="8" class="arch-box"/><text x="539" y="80" text-anchor="middle" class="arch-t1">3. Store</text><text x="539" y="99" text-anchor="middle" class="arch-t2">original + PDF</text>
             <rect x="610" y="52" width="118" height="64" rx="8" class="arch-box"/><text x="669" y="80" text-anchor="middle" class="arch-t1">4. Control</text><text x="669" y="99" text-anchor="middle" class="arch-t2">access, audit</text>
@@ -148,7 +149,7 @@
             <rect x="182" y="294" width="128" height="66" rx="8" class="arch-box arch-accent"/><text x="246" y="322" text-anchor="middle" class="arch-t1">SheetJS grid</text><text x="246" y="341" text-anchor="middle" class="arch-t2">Excel / CSV data</text>
             <rect x="324" y="294" width="120" height="66" rx="8" class="arch-box"/><text x="384" y="322" text-anchor="middle" class="arch-t1">Browser</text><text x="384" y="341" text-anchor="middle" class="arch-t2">images</text>
             <text x="240" y="392" text-anchor="middle" class="arch-t2">Same viewer UI: thumbnails, search, print, zoom</text>
-            <text x="240" y="412" text-anchor="middle" class="arch-t2">Current renderers kept as a quick preview fallback</text>
+            <text x="240" y="412" text-anchor="middle" class="arch-t2">Current renderers kept as a fallback</text>
 
             <rect x="490" y="250" width="250" height="200" rx="14" class="arch-zone"/>
             <text x="510" y="276" class="arch-zone-label">Mobile apps (native)</text>
@@ -180,7 +181,7 @@
             <tr><td>Office document accuracy</td><td>Approximate</td><td>Close to Office (LibreOffice lays out the pages)</td></tr>
             <tr><td>Old .doc / .ppt</td><td>Simplified preview</td><td>Full layout</td></tr>
             <tr><td>Security isolation</td><td>Same page as the app</td><td>Separate domain and sandbox</td></tr>
-            <tr><td>Audit, watermark, malware scan</td><td>None</td><td>Yes</td></tr>
+            <tr><td>Audit, watermark, malware scan of incoming files</td><td>None</td><td>Yes</td></tr>
             <tr><td>Browser libraries to maintain</td><td>6 + 2 custom renderers</td><td>Mainly pdf.js and SheetJS</td></tr>
             <tr><td>Mobile apps</td><td>Browser only</td><td>Native viewers on the same PDF</td></tr>
             <tr><td>Best for</td><td>Demos, previews, environments where no server is allowed</td><td>Production on a regulated platform</td></tr>
@@ -193,8 +194,8 @@
         <h2>6. Migration plan</h2>
         <ol class="arch-plan">
           <li><strong>Phase 1: POC as preview (done).</strong> Browser viewer for all 15 formats, compatibility test, device check.</li>
-          <li><strong>Phase 2: conversion service.</strong> Internal container with LibreOffice/Gotenberg; store a PDF version of every Office and TIFF document; the viewer shows the PDF and keeps the grid for Excel/CSV.</li>
-          <li><strong>Phase 3: security and compliance.</strong> Viewer on a separate domain in a sandboxed iframe, malware scan on upload, access checks, audit log, optional watermark.</li>
+          <li><strong>Phase 2: conversion service.</strong> Internal container with LibreOffice/Gotenberg; store a PDF version of every Office and TIFF document the platform holds; the viewer shows the PDF and keeps the grid for Excel/CSV.</li>
+          <li><strong>Phase 3: security and compliance.</strong> Viewer on a separate domain in a sandboxed iframe, malware scan when files enter the platform, access checks, audit log, optional watermark.</li>
           <li><strong>Phase 4: quality.</strong> Automated tests for all formats (Playwright), WCAG 2.1 AA audit, real-device testing on iOS and Android.</li>
           <li><strong>Phase 5: mobile apps.</strong> Native viewers (PDFKit / PdfRenderer) on the same PDF versions.</li>
         </ol>
@@ -220,10 +221,10 @@
           <tbody>
             <tr><td><a href="https://github.com/mozilla/pdf.js">pdf.js</a></td><td>.pdf</td><td>Apache-2.0</td><td>Main viewer for all paged documents</td></tr>
             <tr><td><a href="https://sheetjs.com/">SheetJS CE</a></td><td>.xlsx .xlsm .xls .csv</td><td>Apache-2.0</td><td>Interactive spreadsheet grid</td></tr>
-            <tr><td><a href="https://github.com/VolodymyrBaydalka/docxjs">docx-preview</a></td><td>.docx .docm</td><td>Apache-2.0</td><td>Quick preview before conversion</td></tr>
-            <tr><td><a href="https://github.com/Stuk/jszip">JSZip</a> + renderer</td><td>.pptx</td><td>MIT</td><td>Quick preview before conversion</td></tr>
-            <tr><td><a href="https://github.com/SheetJS/js-cfb">cfb</a> + reader</td><td>.doc .ppt</td><td>Apache-2.0</td><td>Quick preview before conversion</td></tr>
-            <tr><td><a href="https://github.com/photopea/UTIF.js">UTIF.js</a></td><td>.tif .tiff</td><td>MIT</td><td>Quick preview before conversion</td></tr>
+            <tr><td><a href="https://github.com/VolodymyrBaydalka/docxjs">docx-preview</a></td><td>.docx .docm</td><td>Apache-2.0</td><td>Fallback when no PDF version exists yet</td></tr>
+            <tr><td><a href="https://github.com/Stuk/jszip">JSZip</a> + renderer</td><td>.pptx</td><td>MIT</td><td>Fallback when no PDF version exists yet</td></tr>
+            <tr><td><a href="https://github.com/SheetJS/js-cfb">cfb</a> + reader</td><td>.doc .ppt</td><td>Apache-2.0</td><td>Fallback when no PDF version exists yet</td></tr>
+            <tr><td><a href="https://github.com/photopea/UTIF.js">UTIF.js</a></td><td>.tif .tiff</td><td>MIT</td><td>Fallback when no PDF version exists yet</td></tr>
             <tr><td><a href="https://github.com/gotenberg/gotenberg">Gotenberg</a> / LibreOffice</td><td>Office, TIFF → PDF</td><td>MIT / MPL-2.0</td><td>Server-side conversion (new)</td></tr>
           </tbody>
         </table></div>
