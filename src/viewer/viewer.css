@@ -343,3 +343,12 @@
 .dv-legacy-page p[style] { margin: 0; }
 .dv-doc-marker { display: inline-block; text-indent: 0; padding-right: 0.4em; box-sizing: border-box; }
 .dv-doc-table p { margin: 0; }
+
+/* PowerPoint 97-2003 slides drawn from their shapes. */
+.dv-legacy-slide.dv-ppt-slide { position: relative; overflow: hidden; padding: 0; box-sizing: border-box; }
+.dv-ppt-shape { position: absolute; box-sizing: border-box; }
+.dv-ppt-text { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: visible; line-height: 1.2; color: #000; overflow-wrap: break-word; }
+.dv-ppt-p { margin: 0; }
+.dv-ppt-bullet { display: inline-block; text-indent: 0; padding-right: 0.3em; box-sizing: border-box; }
+.dv-ppt-picture { display: block; width: 100%; height: 100%; object-fit: fill; }
+.dv-ppt-line { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }

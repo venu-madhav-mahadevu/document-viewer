@@ -2,6 +2,7 @@ import CFB from 'cfb';
 import { el } from '../sanitize.js';
 import { clonePagesForPrint, PAGE_WIDTH, PAGE_WIDTH_LANDSCAPE } from '../print.js';
 import { readWordDocument, paragraphStyle, charStyle } from './doc-format.js';
+import { readPresentation } from './ppt-format.js';
 
 /*
  * Word 97-2003 (.doc) and PowerPoint 97-2003 (.ppt) preview.
@@ -387,7 +388,7 @@ function pptContent(cfb) {
   return { slides, size };
 }
 
-/** JPEG and PNG pictures stored in the "Pictures" stream. */
+/** JPEG and PNG pictures stored in the "Pictures" stream, with their byte offsets. */
 function pptPictures(cfb) {
   const pics = stream(cfb, 'Pictures');
   if (!pics) return [];
@@ -405,7 +406,7 @@ function pptPictures(cfb) {
     let uids = 1;
     if (type === 0xf01d || type === 0xf02a) { mime = 'image/jpeg'; uids = inst === 0x46b || inst === 0x6e3 ? 2 : 1; }
     else if (type === 0xf01e) { mime = 'image/png'; uids = inst === 0x6e1 ? 2 : 1; }
-    if (mime) out.push(new Blob([pics.subarray(body + 16 * uids + 1, next)], { type: mime }));
+    if (mime) out.push({ offset: p, blob: new Blob([pics.subarray(body + 16 * uids + 1, next)], { type: mime }) });
     p = next;
   }
   return out;
@@ -413,10 +414,152 @@ function pptPictures(cfb) {
 
 const lines = (texts) => texts.flatMap((t) => t.split(/[\r\n]/)).map((s) => s.replace(/\x0b/g, ' ').trim()).filter(Boolean);
 
+// Symbol / Wingdings bullet characters -> Unicode.
+const WINGDINGS = { 0x6c: '●', 0x6e: '■', 0x71: '❑', 0x75: '◆', 0x76: '❖', 0xa7: '▪', 0xd8: '➢', 0xfc: '✓', 0x9f: '•' };
+function bulletText(code, fontName = '') {
+  if (code === undefined) return '•';
+  if (code >= 0xf000) code -= 0xf000;
+  if (/wingdings/i.test(fontName)) return WINGDINGS[code] ?? '•';
+  if (/symbol/i.test(fontName)) return code === 0xb7 ? '•' : code === 0xa8 ? '♦' : '•';
+  return String.fromCharCode(code);
+}
+
+/** One slide drawn like PowerPoint: positioned shapes, pictures and formatted text. */
+function renderDrawnSlide(slide, size, W, H, urlFor) {
+  const scale = W / size.w;          // px per master unit
+  const ptPx = scale * 8;            // px per point (576 master units per inch, 72 pt per inch)
+  const card = el('section', 'dv-page dv-legacy-slide dv-ppt-slide');
+  card.style.width = `${W}px`;
+  card.style.height = `${H}px`;
+  card.style.background = slide.background || '#ffffff';
+  const px = (v) => `${(v * scale).toFixed(2)}px`;
+
+  for (const sh of slide.shapes) {
+    const box = el('div', 'dv-ppt-shape');
+    Object.assign(box.style, { left: px(sh.x), top: px(sh.y), width: px(Math.max(sh.w, 1)), height: px(Math.max(sh.h, 1)) });
+    const tf = [];
+    if (sh.rot) tf.push(`rotate(${sh.rot}deg)`);
+    if (sh.flipH || sh.flipV) tf.push(`scale(${sh.flipH ? -1 : 1}, ${sh.flipV ? -1 : 1})`);
+    if (tf.length) box.style.transform = tf.join(' ');
+
+    if (sh.kind === 'line') {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'dv-ppt-line');
+      svg.setAttribute('viewBox', `0 0 ${Math.max(sh.w, 1)} ${Math.max(sh.h, 1)}`);
+      svg.setAttribute('preserveAspectRatio', 'none');
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', '0'); line.setAttribute('y1', '0');
+      line.setAttribute('x2', String(sh.w)); line.setAttribute('y2', String(sh.h));
+      line.setAttribute('stroke', sh.line || '#000000');
+      line.setAttribute('stroke-width', String(Math.max(sh.lineWidth * scale, 1)));
+      line.setAttribute('vector-effect', 'non-scaling-stroke');
+      svg.append(line);
+      box.append(svg);
+      card.append(box);
+      continue;
+    }
+
+    if (sh.fill) {
+      box.style.backgroundColor = sh.fill;
+      if (sh.fillOpacity < 1) box.style.backgroundColor = `color-mix(in srgb, ${sh.fill} ${Math.round(sh.fillOpacity * 100)}%, transparent)`;
+    }
+    if (sh.line) box.style.border = `${Math.max(sh.lineWidth * scale, 1).toFixed(2)}px solid ${sh.line}`;
+    if (sh.kind === 'ellipse') box.style.borderRadius = '50%';
+    if (sh.kind === 'roundRect') box.style.borderRadius = px(Math.min(sh.w, sh.h) * ((sh.adjust ?? 3600) / 21600));
+    if (sh.picture) {
+      const img = el('img', 'dv-ppt-picture');
+      img.src = urlFor(sh.picture);
+      img.alt = '';
+      box.append(img);
+    }
+
+    if (sh.text) {
+      const t = sh.text;
+      const inner = el('div', 'dv-ppt-text');
+      inner.style.padding = t.insets.map(px).join(' ');
+      inner.style.justifyContent = ['flex-start', 'center', 'flex-end'][t.anchor % 3];
+      if (!t.wrap) inner.style.whiteSpace = 'pre';
+      if (sh.flipH || sh.flipV) inner.style.transform = `scale(${sh.flipH ? -1 : 1}, ${sh.flipV ? -1 : 1})`; // keep text readable
+      for (const para of t.paragraphs) {
+        const p = el('div', 'dv-ppt-p');
+        const pf = para.pf;
+        const firstSize = (para.runs[0]?.size ?? para.emptyCf.size ?? 18) * ptPx;
+        p.style.fontSize = `${firstSize.toFixed(2)}px`;
+        if (pf.align) p.style.textAlign = ['left', 'center', 'right', 'justify'][pf.align] || 'left';
+        if (pf.leftMargin !== undefined) p.style.paddingLeft = px(pf.leftMargin);
+        if (pf.leftMargin !== undefined || pf.indent !== undefined) p.style.textIndent = px((pf.indent ?? 0) - (pf.leftMargin ?? 0));
+        if (pf.lineSpacing !== undefined) p.style.lineHeight = pf.lineSpacing >= 0 ? String((pf.lineSpacing / 100) * 1.2) : px(-pf.lineSpacing);
+        const space = (v) => (v >= 0 ? `${((v / 100) * firstSize * 1.2).toFixed(2)}px` : px(-v));
+        if (pf.spaceBefore) p.style.marginTop = space(pf.spaceBefore);
+        if (pf.spaceAfter) p.style.marginBottom = space(pf.spaceAfter);
+
+        if (pf.hasBullet && !para.empty) {
+          const b = el('span', 'dv-ppt-bullet', bulletText(pf.bulletChar, para.bulletFontName));
+          const gap = (pf.leftMargin ?? 0) - (pf.indent ?? 0);
+          if (gap > 0) b.style.minWidth = px(gap);
+          const first = para.runs[0] || para.emptyCf;
+          b.style.color = (pf.bulletHasColor && pf.bulletColor) || first.color || '';
+          if (pf.bulletHasSize && pf.bulletSize > 0) b.style.fontSize = `${pf.bulletSize}%`;
+          p.append(b);
+        }
+        if (para.empty) p.append(el('br'));
+        for (const run of para.runs) {
+          const span = el('span');
+          const st = span.style;
+          if (run.bold) st.fontWeight = '700';
+          if (run.italic) st.fontStyle = 'italic';
+          if (run.underline) st.textDecoration = 'underline';
+          if (run.color) st.color = run.color;
+          if (run.size) st.fontSize = `${(run.size * ptPx).toFixed(2)}px`;
+          if (run.fontName) st.fontFamily = `"${run.fontName.replace(/"/g, '')}", sans-serif`;
+          if (run.position > 0) { st.verticalAlign = 'super'; st.fontSize = '0.7em'; }
+          if (run.position < 0) { st.verticalAlign = 'sub'; st.fontSize = '0.7em'; }
+          appendWithBreaks(span, run.text);
+          p.append(span);
+        }
+        inner.append(p);
+      }
+      box.append(inner);
+    }
+    card.append(box);
+  }
+  return card;
+}
+
 export async function renderPpt({ buffer, mount }) {
   const cfb = openCompound(buffer);
+  const pictureEntries = pptPictures(cfb);
+  const urls = new Map(); // blob -> object URL
+  const urlFor = (blob) => { if (!urls.has(blob)) urls.set(blob, URL.createObjectURL(blob)); return urls.get(blob); };
+  const result = (pages, W) => ({
+    pages: () => pages,
+    pageWidth: () => W,
+    naturalWidth: () => W,
+    printNodes: () => ({ nodes: clonePagesForPrint(pages, PAGE_WIDTH_LANDSCAPE, () => W), landscape: true }),
+    destroy() { urls.forEach((u) => URL.revokeObjectURL(u)); },
+  });
+
+  // Slides drawn like PowerPoint first; the simple title + bullets view if that fails.
+  try {
+    const drawn = readPresentation(stream(cfb, 'PowerPoint Document'), new Map(pictureEntries.map((e) => [e.offset, e.blob])));
+    const W = 960;
+    const H = Math.round((W * drawn.size.h) / drawn.size.w) || 540;
+    const root = el('div', 'dv-legacy dv-legacy-ppt');
+    mount.append(root);
+    const pages = drawn.slides.map((slide, i) => {
+      const card = renderDrawnSlide(slide, drawn.size, W, H, urlFor);
+      card.setAttribute('aria-label', `Slide ${i + 1}`);
+      root.append(card);
+      return card;
+    });
+    return result(pages, W);
+  } catch (err) {
+    console.warn('Slides could not be drawn; showing slide text.', err);
+    mount.replaceChildren();
+  }
+
   const { slides, size } = pptContent(cfb);
-  const pictures = pptPictures(cfb);
+  const pictures = pictureEntries.map((e) => e.blob);
   if (!slides.length && !pictures.length) throw new Error('No slides could be read from this presentation.');
 
   const W = 960;
@@ -443,14 +586,13 @@ export async function renderPpt({ buffer, mount }) {
     return card;
   });
 
-  const urls = pictures.map((blob) => URL.createObjectURL(blob));
-  if (urls.length) {
+  if (pictures.length) {
     const gallery = el('section', 'dv-legacy-pictures');
-    gallery.append(el('h3', null, `Pictures in this presentation (${urls.length})`));
+    gallery.append(el('h3', null, `Pictures in this presentation (${pictures.length})`));
     const grid = el('div', 'dv-legacy-grid');
-    for (const url of urls) {
+    for (const blob of pictures) {
       const img = el('img');
-      img.src = url;
+      img.src = urlFor(blob);
       img.alt = '';
       grid.append(img);
     }
@@ -458,11 +600,5 @@ export async function renderPpt({ buffer, mount }) {
     root.append(gallery);
   }
 
-  return {
-    pages: () => pages,
-    pageWidth: () => W,
-    naturalWidth: () => W,
-    printNodes: () => ({ nodes: clonePagesForPrint(pages, PAGE_WIDTH_LANDSCAPE, () => W), landscape: true }),
-    destroy() { urls.forEach((u) => URL.revokeObjectURL(u)); },
-  };
+  return result(pages, W);
 }
