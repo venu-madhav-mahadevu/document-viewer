@@ -1,0 +1,18 @@
+name: Deploy staging
+
+# A push to the staging branch re-runs the Pages deployment from main, which
+# builds both production (/) and staging (/staging/).
+on:
+  push:
+    branches: [staging]
+
+permissions:
+  actions: write
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh workflow run deploy.yml --ref main --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}

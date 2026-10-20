@@ -1,5 +1,10 @@
 name: Deploy to GitHub Pages
 
+# One Pages site, two environments:
+#   /          production  - built from the main branch
+#   /staging/  staging     - built from the staging branch (new changes are tried here first)
+# Pushes to staging start this workflow through staging-trigger.yml, so the
+# deployment always runs from main (the only branch allowed to deploy to Pages).
 on:
   push:
     branches: [main]
@@ -19,12 +24,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run build
+
+      - name: Check out staging
+        id: staging
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: staging
+          path: staging-src
+      - name: Build staging into /staging/
+        if: steps.staging.outcome == 'success'
+        working-directory: staging-src
+        run: |
+          npm ci
+          npm run build
+          cp -r dist ../dist/staging
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
