@@ -335,3 +335,8 @@
 .dv-back:focus-visible { outline: 2px solid var(--dv-accent); outline-offset: 2px; }
 .dv-back[hidden] { display: none; }
 @media (max-width: 700px) { .dv-back span { display: none; } .dv-back { padding: 0 8px; } }
+.dv-legacy-page { position: relative; }
+.dv-legacy-footer {
+  position: absolute; left: 0; right: 0; bottom: 40px; text-align: center;
+  font: 12px/1 "Segoe UI", Arial, sans-serif; color: #80868b; white-space: nowrap;
+}

@@ -163,20 +163,35 @@ export async function renderDoc({ buffer, mount, download }) {
   root.append(notice(`Text and tables from this Word 97-2003 file are shown without the original fonts, images or layout.${download ? ' Download the file to see it exactly.' : ''}`));
   mount.append(root);
 
-  let page = el('div', 'dv-page dv-legacy-page');
-  const pages = [page];
-  root.append(page);
+  // Lay the content out on Letter-sized pages, like a PDF: a new page starts at
+  // each page break in the file and whenever a page is full.
+  const PAGE_HEIGHT = 1056; // 11 in at 96 dpi (CSS px), padding included
+  const pages = [];
+  let page;
+  const newPage = () => {
+    page = el('div', 'dv-page dv-legacy-page');
+    pages.push(page);
+    root.append(page);
+  };
+  const place = (node) => {
+    page.append(node);
+    // Full: move this block to a fresh page (a block taller than a page stays where it is).
+    if (page.scrollHeight > PAGE_HEIGHT && page.childElementCount > 1) {
+      node.remove();
+      newPage();
+      page.append(node);
+    }
+  };
+  newPage();
 
   for (const block of blocks) {
     if (block.type === 'break') {
-      page = el('div', 'dv-page dv-legacy-page');
-      pages.push(page);
-      root.append(page);
+      if (page.childElementCount) newPage();
     } else if (block.type === 'p') {
       const p = el('p');
       if (block.text.trim() === '') p.append(el('br'));
       else appendWithBreaks(p, block.text);
-      page.append(p);
+      place(p);
     } else if (block.rows.length) {
       const t = el('table', 'dv-legacy-table');
       for (const cells of block.rows) {
@@ -189,9 +204,12 @@ export async function renderDoc({ buffer, mount, download }) {
           });
         }
       }
-      page.append(t);
+      place(t);
     }
   }
+
+  // "Page 2 of 5" at the bottom of each page, as in a printed PDF.
+  pages.forEach((p, i) => p.append(el('span', 'dv-legacy-footer', `Page ${i + 1} of ${pages.length}`)));
 
   const widthOf = () => 816;
   return {
