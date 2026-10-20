@@ -338,3 +338,8 @@
   position: absolute; left: 0; right: 0; bottom: 40px; text-align: center;
   font: 12px/1 "Segoe UI", Arial, sans-serif; color: #80868b; white-space: nowrap;
 }
+
+/* Formatted .doc paragraphs: spacing and fonts come from the document itself. */
+.dv-legacy-page p[style] { margin: 0; }
+.dv-doc-marker { display: inline-block; text-indent: 0; padding-right: 0.4em; box-sizing: border-box; }
+.dv-doc-table p { margin: 0; }

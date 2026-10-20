@@ -1,6 +1,7 @@
 import CFB from 'cfb';
 import { el } from '../sanitize.js';
 import { clonePagesForPrint, PAGE_WIDTH, PAGE_WIDTH_LANDSCAPE } from '../print.js';
+import { readWordDocument, paragraphStyle, charStyle } from './doc-format.js';
 
 /*
  * Word 97-2003 (.doc) and PowerPoint 97-2003 (.ppt) preview.
@@ -8,7 +9,8 @@ import { clonePagesForPrint, PAGE_WIDTH, PAGE_WIDTH_LANDSCAPE } from '../print.j
  * These are binary "compound files" (CFB, read with SheetJS's open-source
  * `cfb`). No open-source browser library reproduces their layout, so this
  * shows the content - text, paragraphs, tables, slide titles/bullets and
- * pictures - laid out as pages.
+ * pictures - laid out as pages. For .doc, character and paragraph formatting,
+ * styles and lists are read too (doc-format.js).
  */
 
 const cp1252 = new TextDecoder('windows-1252');
@@ -149,9 +151,99 @@ function appendWithBreaks(parent, text) {
   });
 }
 
+/** Like wordBlocks, for formatted paragraphs from readWordDocument. */
+function formattedBlocks(paras) {
+  const blocks = [];
+  let table = null;
+  let row = null;
+  let cellParas = [];
+  let lastWasCellEnd = false;
+  const textOf = (para) => para.segments.map((s) => s.text).join('');
+
+  // A page break (\x0c) inside a paragraph splits it.
+  const pushParagraph = (para) => {
+    let part = { ...para, segments: [] };
+    const parts = [part];
+    for (const seg of para.segments) {
+      seg.text.split('\x0c').forEach((text, i) => {
+        if (i > 0) { part = { ...para, list: undefined, segments: [] }; parts.push(part); }
+        if (text) part.segments.push({ ...seg, text });
+      });
+    }
+    if (para.pap.pageBreakBefore) blocks.push({ type: 'break' });
+    parts.forEach((pp, i) => {
+      if (i > 0) blocks.push({ type: 'break' });
+      if (pp.segments.length || i === 0) blocks.push({ type: 'p', para: pp });
+    });
+  };
+
+  for (const para of paras) {
+    if (para.end === '\x07') {
+      if (lastWasCellEnd && textOf(para) === '' && cellParas.length === 0) {
+        if (!table) { table = { type: 'table', rows: [] }; blocks.push(table); }
+        if (row) table.rows.push(row);
+        row = null;
+        lastWasCellEnd = false;
+        continue;
+      }
+      if (!table) { table = { type: 'table', rows: [] }; blocks.push(table); }
+      row ??= [];
+      row.push([...cellParas, para]);
+      cellParas = [];
+      lastWasCellEnd = true;
+      continue;
+    }
+    lastWasCellEnd = false;
+    if (row) { cellParas.push(para); continue; }
+    if (table) table = null;
+    pushParagraph(para);
+  }
+  if (row && table) table.rows.push(row);
+  return blocks;
+}
+
+/** One formatted paragraph: paragraph styles, list marker and styled text runs. */
+function renderParagraph(para) {
+  const p = el('p');
+  Object.assign(p.style, paragraphStyle(para.pap, para.list));
+  if (para.styleChp?.size) p.style.fontSize = `${para.styleChp.size}pt`;
+  if (para.pap.sti >= 1 && para.pap.sti <= 9) {
+    p.setAttribute('role', 'heading');
+    p.setAttribute('aria-level', String(para.pap.sti));
+  }
+  if (para.list) {
+    const marker = el('span', 'dv-doc-marker', para.list.marker);
+    const first = para.pap.first ?? para.list.pap.first;
+    if (first < 0) marker.style.minWidth = `${(-first / 15).toFixed(1)}px`;
+    Object.assign(marker.style, charStyle({ ...(para.segments[0]?.chp || para.styleChp), ...para.list.chp, fontName: '' }));
+    p.append(marker);
+  }
+  if (!para.segments.length) p.append(el('br'));
+  for (const seg of para.segments) {
+    const span = el('span');
+    Object.assign(span.style, charStyle(seg.chp));
+    appendWithBreaks(span, seg.text);
+    p.append(span);
+  }
+  return p;
+}
+
 export async function renderDoc({ buffer, mount }) {
   const cfb = openCompound(buffer);
-  const blocks = wordBlocks(CLEAN(stripFields(wordText(cfb))));
+  const plain = wordText(cfb); // also checks the version, encryption and structure
+
+  // Formatted reading first; plain text if this file's formatting can't be read.
+  let blocks;
+  let formatted = true;
+  try {
+    const wd = stream(cfb, 'WordDocument');
+    const table = stream(cfb, view(wd).getUint16(0x0a, true) & 0x0200 ? '1Table' : '0Table');
+    blocks = formattedBlocks(readWordDocument(wd, table));
+  } catch (err) {
+    console.warn('Word formatting could not be read; showing plain text.', err);
+    formatted = false;
+    blocks = wordBlocks(CLEAN(stripFields(plain)));
+  }
 
   const root = el('div', 'dv-legacy');
   mount.append(root);
@@ -177,20 +269,32 @@ export async function renderDoc({ buffer, mount }) {
   };
   newPage();
 
+  let prev = null; // previous formatted paragraph
   for (const block of blocks) {
+    if (block.type !== 'p') prev = null;
     if (block.type === 'break') {
       if (page.childElementCount) newPage();
+    } else if (block.type === 'p' && formatted) {
+      const node = renderParagraph(block.para);
+      // "Don't add space between paragraphs of the same style" (lists, mostly).
+      if (prev && block.para.pap.contextual && prev.para.pap.istd === block.para.pap.istd) {
+        node.style.marginTop = '0px';
+        prev.node.style.marginBottom = '0px';
+      }
+      prev = { para: block.para, node };
+      place(node);
     } else if (block.type === 'p') {
       const p = el('p');
       if (block.text.trim() === '') p.append(el('br'));
       else appendWithBreaks(p, block.text);
       place(p);
     } else if (block.rows.length) {
-      const t = el('table', 'dv-legacy-table');
+      const t = el('table', formatted ? 'dv-legacy-table dv-doc-table' : 'dv-legacy-table');
       for (const cells of block.rows) {
         const tr = t.insertRow();
         for (const cell of cells) {
           const td = tr.insertCell();
+          if (formatted) { for (const para of cell) td.append(renderParagraph(para)); continue; }
           cell.split('\n').forEach((line, i) => {
             if (i) td.append(el('br'));
             appendWithBreaks(td, line);
