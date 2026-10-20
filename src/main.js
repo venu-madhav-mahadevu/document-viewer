@@ -63,9 +63,14 @@ function goBack() {
 window.addEventListener('popstate', () => { if (history.state?.view !== 'doc') goHome(); });
 
 function add(newFiles) {
-  const start = files.length;
-  files.push(...newFiles);
-  if (newFiles.length) show(start);
+  // A file that is already in the list (same name and size) is shown again, not duplicated.
+  let first = -1;
+  for (const file of newFiles) {
+    let i = files.findIndex((f) => f.name === file.name && f.size === file.size);
+    if (i === -1) { files.push(file); i = files.length - 1; }
+    if (first === -1) first = i;
+  }
+  if (first !== -1) show(first);
 }
 
 fileInput.addEventListener('change', () => { add([...fileInput.files]); fileInput.value = ''; });

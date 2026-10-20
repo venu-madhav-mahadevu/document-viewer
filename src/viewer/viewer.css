@@ -61,8 +61,8 @@
   min-height: 52px;
 }
 .dv-title { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; padding: 0 4px; }
-.dv-name { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dv-size { flex: none; font-size: 13px; color: var(--dv-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dv-name { flex: 0 1 auto; min-width: 3em; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dv-size { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: var(--dv-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .dv-size:empty { display: none; }
 .dv-badge:empty { display: none; }
 .dv-badge {
