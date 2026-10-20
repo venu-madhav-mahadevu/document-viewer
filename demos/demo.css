@@ -163,3 +163,34 @@ tr.dc-warn td { background: #fef7e0; }
   .dc-table th:nth-child(3), .dc-table td:nth-child(3) { display: none; }
   .wrap { padding: 16px 12px 40px; }
 }
+
+/* Architecture page */
+.arch { max-width: 1000px; }
+.arch-lead { font-size: 17px; line-height: 1.55; margin: 0 0 16px; }
+.arch-toc { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0 0 24px; }
+.arch-toc a {
+  font-size: 13px; text-decoration: none; padding: 4px 10px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+}
+.arch-toc a:hover { border-color: var(--accent); color: var(--accent); }
+.arch-section { margin: 0 0 32px; scroll-margin-top: 16px; }
+.arch-section h2 { font-size: 20px; margin: 0 0 8px; }
+.arch-section p { margin: 0 0 12px; }
+.arch-figure { margin: 8px 0 0; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.arch-figure svg { width: 100%; height: auto; display: block; }
+.arch-figure figcaption { margin-top: 10px; font-size: 13px; color: var(--muted); }
+.arch-zone { fill: #f8f9fa; stroke: #dadce0; stroke-dasharray: 6 4; }
+.arch-zone-server { fill: #f1f8f3; stroke: #a8dab5; }
+.arch-zone-label { font: 600 13px "Segoe UI", system-ui, sans-serif; fill: #5f6368; }
+.arch-box { fill: #fff; stroke: #9aa0a6; stroke-width: 1.25; }
+.arch-accent { fill: #e8f0fe; stroke: #1a73e8; stroke-width: 2; }
+.arch-chip { fill: #e6f4ea; stroke: #81c995; }
+.arch-t1 { font: 600 14px "Segoe UI", system-ui, sans-serif; fill: #202124; }
+.arch-t2 { font: 12px "Segoe UI", system-ui, sans-serif; fill: #5f6368; }
+.arch-t3 { font: 600 11.5px "Segoe UI", system-ui, sans-serif; fill: #0d652d; }
+.arch-lines path { fill: none; stroke: #80868b; stroke-width: 1.25; }
+.arch-arrowhead { fill: #80868b; }
+.arch-table-wrap { overflow-x: auto; }
+.arch-table { width: 100%; }
+.arch-table th, .arch-table td { white-space: normal !important; vertical-align: top; text-align: left; }
+.arch-plan li { margin: 0 0 8px; }

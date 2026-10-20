@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' blob: data:; worker-src 'self' blob:; connect-src 'self' blob: data: ws://localhost:* ws://127.0.0.1:*; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Architecture</title>
+    <link rel="stylesheet" href="./demo.css" />
+  </head>
+  <body>
+    <div class="wrap arch">
+      <a class="back-btn" href="../index.html"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>Back to Docs Viewer</a>
+      <div class="crumbs"><a href="./index.html">Library demos</a> · <a href="./compare.html">Compatibility test</a> · <a href="./device.html">Device check</a></div>
+
+      <h1>Document Viewer architecture</h1>
+      <p class="arch-lead">The current browser-only viewer is a strong foundation. For a regulated platform such as banking, the recommended production design is a <strong>hybrid</strong>: keep this viewer, and add a conversion and security service inside the organization's own network.</p>
+
+      <nav class="arch-toc" aria-label="On this page">
+        <a href="#current">Current architecture</a>
+        <a href="#strengths">Strengths</a>
+        <a href="#gaps">Production gaps</a>
+        <a href="#recommended">Recommended architecture</a>
+        <a href="#compare">Comparison</a>
+        <a href="#plan">Migration plan</a>
+        <a href="#questions">Open questions</a>
+        <a href="#libraries">Libraries</a>
+      </nav>
+
+      <!-- ===================================================== CURRENT -->
+      <section id="current" class="arch-section">
+        <h2>1. Current architecture: browser only</h2>
+        <p>Every step runs in the user's browser. Files are never uploaded and no third-party service is involved.</p>
+        <figure class="arch-figure">
+          <svg viewBox="0 0 760 330" role="img" aria-labelledby="cur-title cur-desc">
+            <title id="cur-title">Current browser-only architecture</title>
+            <desc id="cur-desc">A document goes through detect.js, then formats.js picks one of seven renderers, which hand pages to the shared viewer UI.</desc>
+            <defs>
+              <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="arch-arrowhead"/></marker>
+            </defs>
+            <rect x="8" y="8" width="744" height="314" rx="14" class="arch-zone"/>
+            <text x="28" y="34" class="arch-zone-label">User's browser</text>
+
+            <rect x="28" y="130" width="120" height="70" rx="8" class="arch-box"/>
+            <text x="88" y="160" class="arch-t1" text-anchor="middle">Document</text>
+            <text x="88" y="180" class="arch-t2" text-anchor="middle">File, Blob, URL</text>
+
+            <rect x="176" y="120" width="130" height="90" rx="8" class="arch-box"/>
+            <text x="241" y="148" class="arch-t1" text-anchor="middle">detect.js</text>
+            <text x="241" y="168" class="arch-t2" text-anchor="middle">which format?</text>
+            <text x="241" y="186" class="arch-t2" text-anchor="middle">15 formats only</text>
+
+            <rect x="334" y="120" width="120" height="90" rx="8" class="arch-box"/>
+            <text x="394" y="148" class="arch-t1" text-anchor="middle">formats.js</text>
+            <text x="394" y="168" class="arch-t2" text-anchor="middle">format → library</text>
+            <text x="394" y="186" class="arch-t2" text-anchor="middle">loads only that one</text>
+
+            <g class="arch-renderers">
+              <rect x="482" y="52" width="140" height="28" rx="6" class="arch-chip"/><text x="552" y="71" text-anchor="middle" class="arch-t3">pdf.js · .pdf</text>
+              <rect x="482" y="86" width="140" height="28" rx="6" class="arch-chip"/><text x="552" y="105" text-anchor="middle" class="arch-t3">docx-preview · .docx</text>
+              <rect x="482" y="120" width="140" height="28" rx="6" class="arch-chip"/><text x="552" y="139" text-anchor="middle" class="arch-t3">SheetJS · Excel/CSV</text>
+              <rect x="482" y="154" width="140" height="28" rx="6" class="arch-chip"/><text x="552" y="173" text-anchor="middle" class="arch-t3">JSZip · .pptx</text>
+              <rect x="482" y="188" width="140" height="28" rx="6" class="arch-chip"/><text x="552" y="207" text-anchor="middle" class="arch-t3">cfb · .doc .ppt</text>
+              <rect x="482" y="222" width="140" height="28" rx="6" class="arch-chip"/><text x="552" y="241" text-anchor="middle" class="arch-t3">UTIF.js · .tif</text>
+              <rect x="482" y="256" width="140" height="28" rx="6" class="arch-chip"/><text x="552" y="275" text-anchor="middle" class="arch-t3">Browser · .jpg .txt</text>
+            </g>
+
+            <rect x="650" y="110" width="90" height="110" rx="8" class="arch-box arch-accent"/>
+            <text x="695" y="140" class="arch-t1" text-anchor="middle">Viewer UI</text>
+            <text x="695" y="160" class="arch-t2" text-anchor="middle">thumbnails</text>
+            <text x="695" y="176" class="arch-t2" text-anchor="middle">search, print</text>
+            <text x="695" y="192" class="arch-t2" text-anchor="middle">zoom, pages</text>
+
+            <g class="arch-lines">
+              <path d="M148 165H176" marker-end="url(#a1)"/>
+              <path d="M306 165H334" marker-end="url(#a1)"/>
+              <path d="M454 165H468V66H482M468 100H482M468 134H482M468 168H482M468 202H482M468 236H482M468 270H482V270"/>
+              <path d="M468 66V270"/>
+              <path d="M622 165H650" marker-end="url(#a1)"/>
+              <path d="M622 66H636V270H622M636 165H622"/>
+            </g>
+          </svg>
+          <figcaption>createDocViewer() in src/viewer/index.js runs these steps for every file.</figcaption>
+        </figure>
+      </section>
+
+      <!-- ===================================================== STRENGTHS -->
+      <section id="strengths" class="arch-section">
+        <h2>2. Strengths</h2>
+        <div class="arch-table-wrap"><table class="data arch-table">
+          <thead><tr><th>Strength</th><th>Why it matters</th></tr></thead>
+          <tbody>
+            <tr><td>Nothing leaves the browser; no Google or Microsoft</td><td>No third-party data sharing; simpler privacy and vendor review</td></tr>
+            <tr><td>Open source, permissive licenses (Apache-2.0 / MIT), 0 known vulnerabilities</td><td>No license cost; passes typical open-source review</td></tr>
+            <tr><td>One component, libraries declared in one file (formats.js)</td><td>Easy to embed in many screens and to swap a library</td></tr>
+            <tr><td>Fast on large files: 49 MB PDF in under 1 s, 60-page scan in 0.1 s</td><td>Long statements and reports stay responsive</td></tr>
+            <tr><td>pdf.js for PDF</td><td>The most common business format gets Mozilla-grade accuracy</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <!-- ===================================================== GAPS -->
+      <section id="gaps" class="arch-section">
+        <h2>3. Gaps for production use</h2>
+        <div class="arch-table-wrap"><table class="data arch-table">
+          <thead><tr><th>Gap</th><th>Risk</th><th>Fix</th></tr></thead>
+          <tbody>
+            <tr><td>Word, PowerPoint and old Office files are approximate (two custom renderers; .doc/.ppt simplified)</td><td>Official or legal documents may look different from the original</td><td>Convert to PDF on the server; show the PDF</td></tr>
+            <tr><td>Untrusted uploads are parsed in the same page as the user's session</td><td>A library bug could reach session data</td><td>Host the viewer on a separate domain in a sandboxed iframe</td></tr>
+            <tr><td>View-only is not real protection</td><td>Users can still save, screenshot or print</td><td>Watermarks (user, time) and access rules on the server</td></tr>
+            <tr><td>No audit trail</td><td>Regulated platforms must log who viewed what</td><td>Log on the server when the document is requested</td></tr>
+            <tr><td>No malware scanning</td><td>Malicious uploads</td><td>Scan on upload, before anything is shown</td></tr>
+            <tr><td>Accessibility not yet audited</td><td>WCAG 2.1 AA is usually mandatory</td><td>Keyboard, screen reader and contrast audit</td></tr>
+            <tr><td>Two custom renderers to maintain</td><td>Long-term upkeep</td><td>Fewer formats rendered in the browser once PDFs come from the server</td></tr>
+            <tr><td>Mobile browsers need iOS 17.4+ / Chrome 119+</td><td>Older devices; native apps</td><td>Native apps show the server PDF with PDFKit (iOS) / PdfRenderer (Android)</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <!-- ===================================================== RECOMMENDED -->
+      <section id="recommended" class="arch-section">
+        <h2>4. Recommended architecture: hybrid</h2>
+        <p>A conversion and security service inside the organization's network prepares every document; the browser and mobile apps then show one accurate PDF version, while spreadsheets keep their interactive grid.</p>
+        <figure class="arch-figure">
+          <svg viewBox="0 0 760 470" role="img" aria-labelledby="rec-title rec-desc">
+            <title id="rec-title">Recommended hybrid architecture</title>
+            <desc id="rec-desc">Documents go to an internal service that scans, converts to PDF, stores and logs them. A sandboxed web viewer and native mobile apps then display the PDF, with spreadsheets shown as an interactive grid.</desc>
+            <defs>
+              <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="arch-arrowhead"/></marker>
+            </defs>
+
+            <rect x="20" y="20" width="150" height="70" rx="8" class="arch-box"/>
+            <text x="95" y="50" class="arch-t1" text-anchor="middle">Document</text>
+            <text x="95" y="70" class="arch-t2" text-anchor="middle">uploaded or generated</text>
+
+            <rect x="200" y="8" width="540" height="200" rx="14" class="arch-zone arch-zone-server"/>
+            <text x="220" y="34" class="arch-zone-label">Internal service (organization's own network, no third parties)</text>
+            <rect x="220" y="52" width="118" height="64" rx="8" class="arch-box"/><text x="279" y="80" text-anchor="middle" class="arch-t1">1. Scan</text><text x="279" y="99" text-anchor="middle" class="arch-t2">malware check</text>
+            <rect x="350" y="52" width="118" height="64" rx="8" class="arch-box"/><text x="409" y="80" text-anchor="middle" class="arch-t1">2. Convert</text><text x="409" y="99" text-anchor="middle" class="arch-t2">Office/TIFF → PDF</text>
+            <rect x="480" y="52" width="118" height="64" rx="8" class="arch-box"/><text x="539" y="80" text-anchor="middle" class="arch-t1">3. Store</text><text x="539" y="99" text-anchor="middle" class="arch-t2">original + PDF</text>
+            <rect x="610" y="52" width="118" height="64" rx="8" class="arch-box"/><text x="669" y="80" text-anchor="middle" class="arch-t1">4. Control</text><text x="669" y="99" text-anchor="middle" class="arch-t2">access, audit</text>
+            <text x="409" y="146" text-anchor="middle" class="arch-t2">LibreOffice / Gotenberg (open source)</text>
+            <text x="669" y="146" text-anchor="middle" class="arch-t2">optional watermark</text>
+
+            <rect x="20" y="250" width="440" height="200" rx="14" class="arch-zone"/>
+            <text x="40" y="276" class="arch-zone-label">Web viewer (separate domain, sandboxed iframe)</text>
+            <rect x="40" y="294" width="128" height="66" rx="8" class="arch-box arch-accent"/><text x="104" y="322" text-anchor="middle" class="arch-t1">pdf.js</text><text x="104" y="341" text-anchor="middle" class="arch-t2">all paged docs</text>
+            <rect x="182" y="294" width="128" height="66" rx="8" class="arch-box arch-accent"/><text x="246" y="322" text-anchor="middle" class="arch-t1">SheetJS grid</text><text x="246" y="341" text-anchor="middle" class="arch-t2">Excel / CSV data</text>
+            <rect x="324" y="294" width="120" height="66" rx="8" class="arch-box"/><text x="384" y="322" text-anchor="middle" class="arch-t1">Browser</text><text x="384" y="341" text-anchor="middle" class="arch-t2">images</text>
+            <text x="240" y="392" text-anchor="middle" class="arch-t2">Same viewer UI: thumbnails, search, print, zoom</text>
+            <text x="240" y="412" text-anchor="middle" class="arch-t2">Current renderers kept as a quick preview fallback</text>
+
+            <rect x="490" y="250" width="250" height="200" rx="14" class="arch-zone"/>
+            <text x="510" y="276" class="arch-zone-label">Mobile apps (native)</text>
+            <rect x="510" y="294" width="100" height="66" rx="8" class="arch-box"/><text x="560" y="322" text-anchor="middle" class="arch-t1">iOS</text><text x="560" y="341" text-anchor="middle" class="arch-t2">PDFKit</text>
+            <rect x="622" y="294" width="100" height="66" rx="8" class="arch-box"/><text x="672" y="322" text-anchor="middle" class="arch-t1">Android</text><text x="672" y="341" text-anchor="middle" class="arch-t2">PdfRenderer</text>
+            <text x="615" y="392" text-anchor="middle" class="arch-t2">Same PDF from the service</text>
+
+            <g class="arch-lines">
+              <path d="M170 55H200" marker-end="url(#a2)"/>
+              <path d="M338 84H350" marker-end="url(#a2)"/>
+              <path d="M468 84H480" marker-end="url(#a2)"/>
+              <path d="M598 84H610" marker-end="url(#a2)"/>
+              <path d="M470 208V230H240V250" marker-end="url(#a2)"/>
+              <path d="M470 230H615V250" marker-end="url(#a2)"/>
+            </g>
+            <text x="482" y="225" class="arch-t2">PDF + spreadsheet data</text>
+          </svg>
+          <figcaption>Almost nothing from the POC is thrown away: the viewer UI, pdf.js, SheetJS and formats.js carry over; the conversion server is already prototyped in convert-demo/.</figcaption>
+        </figure>
+      </section>
+
+      <!-- ===================================================== COMPARE -->
+      <section id="compare" class="arch-section">
+        <h2>5. Current vs recommended</h2>
+        <div class="arch-table-wrap"><table class="data arch-table">
+          <thead><tr><th></th><th>Current POC (browser only)</th><th>Recommended (hybrid)</th></tr></thead>
+          <tbody>
+            <tr><td>Server needed</td><td>No</td><td>Yes, inside the organization</td></tr>
+            <tr><td>Office document accuracy</td><td>Approximate</td><td>Close to Office (LibreOffice lays out the pages)</td></tr>
+            <tr><td>Old .doc / .ppt</td><td>Simplified preview</td><td>Full layout</td></tr>
+            <tr><td>Security isolation</td><td>Same page as the app</td><td>Separate domain and sandbox</td></tr>
+            <tr><td>Audit, watermark, malware scan</td><td>None</td><td>Yes</td></tr>
+            <tr><td>Browser libraries to maintain</td><td>6 + 2 custom renderers</td><td>Mainly pdf.js and SheetJS</td></tr>
+            <tr><td>Mobile apps</td><td>Browser only</td><td>Native viewers on the same PDF</td></tr>
+            <tr><td>Best for</td><td>Demos, previews, environments where no server is allowed</td><td>Production on a regulated platform</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <!-- ===================================================== PLAN -->
+      <section id="plan" class="arch-section">
+        <h2>6. Migration plan</h2>
+        <ol class="arch-plan">
+          <li><strong>Phase 1: POC as preview (done).</strong> Browser viewer for all 15 formats, compatibility test, device check.</li>
+          <li><strong>Phase 2: conversion service.</strong> Internal container with LibreOffice/Gotenberg; store a PDF version of every Office and TIFF document; the viewer shows the PDF and keeps the grid for Excel/CSV.</li>
+          <li><strong>Phase 3: security and compliance.</strong> Viewer on a separate domain in a sandboxed iframe, malware scan on upload, access checks, audit log, optional watermark.</li>
+          <li><strong>Phase 4: quality.</strong> Automated tests for all formats (Playwright), WCAG 2.1 AA audit, real-device testing on iOS and Android.</li>
+          <li><strong>Phase 5: mobile apps.</strong> Native viewers (PDFKit / PdfRenderer) on the same PDF versions.</li>
+        </ol>
+      </section>
+
+      <!-- ===================================================== QUESTIONS -->
+      <section id="questions" class="arch-section">
+        <h2>7. Open questions for the team</h2>
+        <ol>
+          <li>Must documents look exactly like the original (legal or regulatory), or is a readable preview enough?</li>
+          <li>Can a conversion service run inside the organization's infrastructure (LibreOffice, usually in a container)?</li>
+          <li>Are audit logging and watermarking required?</li>
+          <li>Which browsers and devices must users have, and are native mobile apps in scope?</li>
+          <li>Is a WCAG 2.1 AA accessibility audit required?</li>
+        </ol>
+      </section>
+
+      <!-- ===================================================== LIBRARIES -->
+      <section id="libraries" class="arch-section">
+        <h2>8. Libraries (all open source)</h2>
+        <div class="arch-table-wrap"><table class="data arch-table">
+          <thead><tr><th>Library</th><th>Formats</th><th>License</th><th>Role in the hybrid design</th></tr></thead>
+          <tbody>
+            <tr><td><a href="https://github.com/mozilla/pdf.js">pdf.js</a></td><td>.pdf</td><td>Apache-2.0</td><td>Main viewer for all paged documents</td></tr>
+            <tr><td><a href="https://sheetjs.com/">SheetJS CE</a></td><td>.xlsx .xlsm .xls .csv</td><td>Apache-2.0</td><td>Interactive spreadsheet grid</td></tr>
+            <tr><td><a href="https://github.com/VolodymyrBaydalka/docxjs">docx-preview</a></td><td>.docx .docm</td><td>Apache-2.0</td><td>Quick preview before conversion</td></tr>
+            <tr><td><a href="https://github.com/Stuk/jszip">JSZip</a> + renderer</td><td>.pptx</td><td>MIT</td><td>Quick preview before conversion</td></tr>
+            <tr><td><a href="https://github.com/SheetJS/js-cfb">cfb</a> + reader</td><td>.doc .ppt</td><td>Apache-2.0</td><td>Quick preview before conversion</td></tr>
+            <tr><td><a href="https://github.com/photopea/UTIF.js">UTIF.js</a></td><td>.tif .tiff</td><td>MIT</td><td>Quick preview before conversion</td></tr>
+            <tr><td><a href="https://github.com/gotenberg/gotenberg">Gotenberg</a> / LibreOffice</td><td>Office, TIFF → PDF</td><td>MIT / MPL-2.0</td><td>Server-side conversion (new)</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+    </div>
+  </body>
+</html>
