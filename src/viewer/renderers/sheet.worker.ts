@@ -1,3 +1,4 @@
+// @ts-nocheck -- plain JavaScript kept as .ts so Angular bundles it as a Web Worker.
 // Parses spreadsheets off the main thread so large files never freeze the page.
 import * as XLSX from 'xlsx';
 

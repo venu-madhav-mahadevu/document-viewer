@@ -1,26 +1,38 @@
 {
   "name": "docs-viewer",
   "version": "1.0.0",
-  "description": "Client-side document viewer (PDF, Word, Excel, PowerPoint, images, text) - no external services",
+  "description": "Client-side document viewer (PDF, Word, Excel, PowerPoint, images, text) - Angular app, no external services",
   "scripts": {
-    "predev": "node scripts/copy-pdfjs-assets.mjs && node scripts/copy-lo-assets.mjs && node scripts/sample-sizes.mjs",
-    "dev": "vite",
-    "prebuild": "node scripts/copy-pdfjs-assets.mjs && node scripts/copy-lo-assets.mjs && node scripts/sample-sizes.mjs",
-    "build": "vite build",
-    "preview": "vite preview --port 5181"
+    "prestart": "node scripts/copy-pdfjs-assets.mjs && node scripts/sample-sizes.mjs",
+    "start": "ng serve",
+    "dev": "npm start",
+    "prebuild": "node scripts/copy-pdfjs-assets.mjs && node scripts/sample-sizes.mjs",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development"
   },
   "author": "",
   "license": "UNLICENSED",
   "type": "module",
   "dependencies": {
+    "@angular/common": "~21.2.0",
+    "@angular/compiler": "~21.2.0",
+    "@angular/core": "~21.2.0",
+    "@angular/forms": "~21.2.0",
+    "@angular/platform-browser": "~21.2.0",
+    "@angular/router": "~21.2.0",
     "cfb": "^1.2.2",
     "docx-preview": "^0.4.1",
     "jszip": "^3.10.2",
     "pdfjs-dist": "^6.4.299",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.8.1",
     "utif": "^3.1.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "@angular/build": "~21.2.27",
+    "@angular/cli": "~21.2.27",
+    "@angular/compiler-cli": "~21.2.0",
     "@matbee/libreoffice-converter": "^2.7.2",
     "coi-serviceworker": "^0.1.7",
     "dompurify": "^3.4.17",
@@ -28,8 +40,8 @@
     "highlight.js": "^11.12.0",
     "mammoth": "^1.13.0",
     "papaparse": "^5.7.0",
-    "viewerjs": "^1.15.2",
-    "vite": "^8.3.4"
+    "typescript": "~5.9.2",
+    "viewerjs": "^1.15.2"
   },
   "private": true,
   "overrides": {

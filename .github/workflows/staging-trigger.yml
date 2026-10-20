@@ -1,10 +1,10 @@
 name: Deploy staging
 
-# A push to the staging branch re-runs the Pages deployment from main, which
-# builds both production (/) and staging (/staging/).
+# A push to the staging or angular branch re-runs the Pages deployment from main, which
+# builds production (/), staging (/staging/) and the Angular version (/angular/).
 on:
   push:
-    branches: [staging]
+    branches: [staging, angular]
 
 permissions:
   actions: write

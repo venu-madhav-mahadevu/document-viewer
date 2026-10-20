@@ -11,18 +11,19 @@ and no Google, Microsoft or other third-party service is involved.
 |---|---|---|---|
 | PDF | `.pdf` (incl. password-protected) | [pdf.js](https://github.com/mozilla/pdf.js) | Apache-2.0 |
 | Word | `.docx` `.docm` | [docx-preview](https://github.com/VolodymyrBaydalka/docxjs) | Apache-2.0 |
-| Word 97-2003 | `.doc` | Text, tables and page breaks read from the binary file with [cfb](https://github.com/SheetJS/js-cfb) (simplified preview) | Apache-2.0 |
+| Word 97-2003 | `.doc` | Text, formatting, styles, lists, tables and page breaks read from the binary file with [cfb](https://github.com/SheetJS/js-cfb) (`doc-format.js`) | Apache-2.0 |
 | Excel | `.xlsx` `.xlsm` `.xls` `.csv` | [SheetJS CE](https://sheetjs.com) 0.20.3 | Apache-2.0 |
 | PowerPoint | `.pptx` | In-house renderer (`src/viewer/renderers/pptx.js`) + [JSZip](https://stuk.github.io/jszip/) | MIT |
-| PowerPoint 97-2003 | `.ppt` | Slide titles, text and pictures read with [cfb](https://github.com/SheetJS/js-cfb) (simplified preview) | Apache-2.0 |
+| PowerPoint 97-2003 | `.ppt` | Slides drawn from their shapes, pictures and formatted text, read with [cfb](https://github.com/SheetJS/js-cfb) (`ppt-format.js`) | Apache-2.0 |
 | Images | `.jpg` `.jpeg` | Browser | - |
 | TIFF | `.tif` `.tiff` (multi-page scans, CCITT G3/G4, LZW, JPEG, Deflate) | [UTIF.js](https://github.com/photopea/UTIF.js) | MIT |
 | Text | `.txt` | Browser | - |
 
 Any other file type is rejected with a "not supported" message, and the file picker only offers
 these formats. Files without an extension (e.g. streamed from an API) are identified from their
-content. `.doc` and `.ppt` are binary formats with no open-source browser renderer, so they show a
-clearly labelled simplified preview (content without the original fonts and layout).
+content. `.doc` and `.ppt` are binary formats with no open-source browser renderer; this project reads
+them itself (formatting, styles, shapes and pictures). Rare features (embedded objects, text
+effects, exact line breaking) are simplified.
 
 **Google Docs-style viewing features** (no extra libraries; built on browser APIs):
 
@@ -35,16 +36,39 @@ clearly labelled simplified preview (content without the original fonts and layo
 | Page / zoom pill | Floating `Page 3 / 12 · − 100% +` bar, like Google Drive's preview |
 | Keyboard | `←` `→` previous/next page, `Ctrl` `+`/`−`/`0` zoom, `Esc` closes search |
 
+## Angular version (this branch)
+
+The app is an **Angular 21** application (standalone components, signals, zoneless change detection,
+hash routing). The viewer itself (`src/viewer/`) is unchanged, framework-free code wrapped in an
+Angular component:
+
+```html
+<doc-viewer [src]="file" [download]="true" [showBack]="true" (back)="goHome()" />
+```
+
+`src` can be a `File`, `Blob`, `ArrayBuffer` or a same-origin URL. Types: `src/viewer/index.d.ts`.
+
+| Angular file | What it does |
+|---|---|
+| `src/app/doc-viewer/doc-viewer.ts` | `<doc-viewer>` component (wraps `createDocViewer`) |
+| `src/app/documents.service.ts` | Sample list, download with progress, documents opened in this session |
+| `src/app/home/home.ts` | Home page: document gallery (`#/`) |
+| `src/app/view/view.ts` | View page: `#/view?file=<sample>` or `#/view?src=<same-origin URL>` |
+| `src/app/app.ts` | Shell: sidebar, routed page, phone layout, drop blocking |
+
+The demo pages in `demos/` are not moved to Angular yet; the app links to the staging demos.
+
 ## Run it
 
 ```bash
 npm install
-npm run dev        # http://localhost:5180
-npm run build      # static output in dist/
-npm run preview    # serve dist/ locally
+npm start          # http://localhost:4200
+npm run build      # static output in dist/docs-viewer/browser/
 ```
 
-`dist/` is plain static files. Host it on any internal web server (IIS, nginx, Apache, S3/CloudFront
+Angular 21 works with Node.js 20.19+, 22.12+ or 24+. (Angular 22 needs Node.js 24.15+.)
+
+The build output is plain static files. Host it on any internal web server (IIS, nginx, Apache, S3/CloudFront
 behind SSO, etc.). No backend is required.
 
 ## Library demos with code

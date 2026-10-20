@@ -1,4 +1,4 @@
-import './viewer.css';
+// Styles: src/viewer/viewer.css is listed in angular.json.
 import { detectKind } from './detect.js';
 import { FORMATS, SUPPORTED_EXTENSIONS } from './formats.js'; // all libraries and formats, declared once
 import { el } from './sanitize.js';

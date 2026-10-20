@@ -97,3 +97,7 @@ body { background: var(--bg); color: var(--text); font: 14px/1.4 "Segoe UI", sys
 /* Sample gallery: name + size on one line */
 .sample-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .sample-size { flex: none; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Angular: the root component fills the window like the old <body>. */
+app-root { display: block; height: 100%; }
+.viewer doc-viewer { height: 100%; }

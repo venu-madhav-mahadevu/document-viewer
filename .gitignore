@@ -5,3 +5,5 @@ public/pdfjs/
 public/samples/sizes.json
 public/demos/lo/
 public/demos/coi-serviceworker.js
+.angular/
+out-tsc/

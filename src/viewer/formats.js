@@ -37,7 +37,7 @@ export const FORMATS = {
   },
   sheet: {
     extensions: ['xls', 'xlsx', 'xlsm', 'csv'], label: 'Spreadsheet', library: 'sheetjs', paged: false,
-    load: () => import('./renderers/sheet.js').then((m) => m.renderSheet),
+    load: () => import('./renderers/sheet').then((m) => m.renderSheet),
   },
   ppt: {
     extensions: ['ppt'], label: 'PowerPoint 97-2003', library: 'cfb', paged: true, badge: 'pptx',

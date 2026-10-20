@@ -1,9 +1,8 @@
 import * as pdfjsLib from 'pdfjs-dist';
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import 'pdfjs-dist/web/pdf_viewer.css';
 import { el } from '../sanitize.js';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+// The worker is copied to public/pdfjs by scripts/copy-pdfjs-assets.mjs; pdf_viewer.css is in angular.json.
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs/pdf.worker.min.mjs', document.baseURI).href;
 
 // Absolute URLs: pdf.js may resolve these from inside the worker.
 const asset = (dir) => new URL(`pdfjs/${dir}/`, document.baseURI).href;

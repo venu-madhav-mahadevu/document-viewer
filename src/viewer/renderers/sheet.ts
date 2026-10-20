@@ -1,3 +1,4 @@
+// @ts-nocheck -- plain JavaScript kept as .ts so Angular bundles its Web Worker.
 import * as XLSX from 'xlsx';
 import { el } from '../sanitize.js';
 
@@ -10,7 +11,7 @@ const MAX_COLS = 256;
  */
 function parseInWorker(buffer, isCsv) {
   return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('./sheet.worker.js', import.meta.url), { type: 'module' });
+    const worker = new Worker(new URL('./sheet.worker', import.meta.url), { type: 'module' });
     worker.onmessage = ({ data }) => {
       worker.terminate();
       if (data.ok) resolve(data.wb);
