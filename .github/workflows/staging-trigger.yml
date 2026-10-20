@@ -4,7 +4,7 @@ name: Deploy staging
 # builds both production (/) and staging (/staging/).
 on:
   push:
-    branches: [staging]
+    branches: [staging, angular]
 
 permissions:
   actions: write

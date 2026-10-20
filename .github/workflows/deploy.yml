@@ -1,9 +1,10 @@
-name: Deploy to GitHub Pages
+﻿name: Deploy to GitHub Pages
 
-# One Pages site, two environments:
+# One Pages site, three builds:
 #   /          production  - built from the main branch
 #   /staging/  staging     - built from the staging branch (new changes are tried here first)
-# Pushes to staging start this workflow through staging-trigger.yml, so the
+#   /angular/  Angular     - built from the angular branch (Angular version of the app)
+# Pushes to staging or angular start this workflow through staging-trigger.yml, so the
 # deployment always runs from main (the only branch allowed to deploy to Pages).
 on:
   push:
@@ -47,6 +48,21 @@ jobs:
           npm ci
           npm run build
           cp -r dist ../dist/staging
+
+      - name: Check out angular
+        id: angular
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: angular
+          path: angular-src
+      - name: Build the Angular version into /angular/
+        if: steps.angular.outcome == 'success'
+        working-directory: angular-src
+        run: |
+          npm ci
+          npm run build
+          cp -r dist/docs-viewer/browser ../dist/angular
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
