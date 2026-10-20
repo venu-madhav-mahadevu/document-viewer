@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Client-side document viewer (PDF, Word, Excel, PowerPoint, images, text) - no external services",
   "scripts": {
-    "predev": "node scripts/copy-pdfjs-assets.mjs && node scripts/sample-sizes.mjs",
+    "predev": "node scripts/copy-pdfjs-assets.mjs && node scripts/copy-lo-assets.mjs && node scripts/sample-sizes.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/copy-pdfjs-assets.mjs && node scripts/sample-sizes.mjs",
+    "prebuild": "node scripts/copy-pdfjs-assets.mjs && node scripts/copy-lo-assets.mjs && node scripts/sample-sizes.mjs",
     "build": "vite build",
     "preview": "vite preview --port 5181"
   },
@@ -21,6 +21,8 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "@matbee/libreoffice-converter": "^2.7.2",
+    "coi-serviceworker": "^0.1.7",
     "dompurify": "^3.4.17",
     "exceljs": "^4.4.0",
     "highlight.js": "^11.12.0",

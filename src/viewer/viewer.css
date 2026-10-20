@@ -1,4 +1,7 @@
 .dv-root {
+  /* iPhone Safari enlarges text in zoomed-out pages ("text autosizing"), so lines overlap. Keep sizes exact. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   --dv-canvas: #f1f3f4;
   --dv-surface: #ffffff;
   --dv-border: #dadce0;

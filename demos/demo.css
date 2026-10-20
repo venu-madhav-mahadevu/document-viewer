@@ -4,6 +4,7 @@
   color-scheme: light;
 }
 * { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
 .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
 a { color: var(--accent); }
@@ -195,3 +196,18 @@ tr.dc-warn td { background: #fef7e0; }
 .arch-table th, .arch-table td { white-space: normal !important; vertical-align: top; text-align: left; }
 .arch-plan li { margin: 0 0 8px; }
 .arch-note { background: #e8f0fe; border: 1px solid #c6dafc; border-radius: 8px; padding: 10px 14px; font-size: 14px; }
+
+/* ---------- browser-convert demo ---------- */
+.lo-note { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; font-size: 14px; margin-bottom: 16px; }
+.controls .lo-select { background: var(--surface); color: var(--text); border-color: var(--border); display: inline-flex; gap: 8px; align-items: center; }
+.controls .lo-select select { font: inherit; font-weight: 400; border: 0; background: transparent; color: inherit; max-width: 60vw; }
+.controls button:disabled { opacity: 0.7; cursor: default; }
+.lo-progress { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-bottom: 12px; }
+.lo-progress div { height: 100%; width: 2%; background: var(--accent); transition: width 0.3s; }
+.lo-stats { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 0 0 12px; font-size: 13px; }
+.lo-stats div { display: flex; gap: 6px; }
+.lo-stats dt { color: var(--muted); }
+.lo-stats dd { margin: 0; font-weight: 600; }
+.lo-view { height: 75vh; min-height: 360px; background: #eef0f2; }
+.lo-empty { margin: 0; padding: 24px; color: var(--muted); text-align: center; }
+.lo-code { margin-top: 20px; }

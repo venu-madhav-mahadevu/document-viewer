@@ -7,6 +7,8 @@ const demoPages = Object.fromEntries(
   readdirSync('demos').filter((f) => f.endsWith('.html')).map((f) => [`demos/${f.replace('.html', '')}`, resolve('demos', f)]),
 );
 
+const isolation = { 'Cross-Origin-Opener-Policy': 'same-origin', 'Cross-Origin-Embedder-Policy': 'require-corp' };
+
 export default defineConfig({
   // Relative base so the built app can be hosted under any path on an internal server.
   base: './',
@@ -15,5 +17,9 @@ export default defineConfig({
     chunkSizeWarningLimit: 2000,
     rollupOptions: { input: { main: resolve('index.html'), ...demoPages } },
   },
-  server: { port: Number(process.env.PORT) || 5180, strictPort: !!process.env.PORT },
+  // Cross-origin isolation (needed by the LibreOffice WebAssembly engine in
+  // demos/browser-convert.html). Production hosts send the same two headers;
+  // GitHub Pages cannot, so that page also registers coi-serviceworker.
+  server: { port: Number(process.env.PORT) || 5180, strictPort: !!process.env.PORT, headers: isolation },
+  preview: { headers: isolation },
 });
