@@ -89,6 +89,9 @@ body { background: var(--bg); color: var(--text); font: 14px/1.4 "Segoe UI", sys
   .file-list li { flex: none; max-width: 200px; }
   .file-list button { border-radius: 16px; }
   .privacy { display: none; }
+  /* A document is open: no top bar, the document uses the whole screen (Back returns to the list). */
+  .app.viewing { grid-template-rows: 1fr; }
+  .app.viewing .app-sidebar { display: none; }
 }
 
 /* Sample gallery: name + size on one line */

@@ -5,6 +5,7 @@ import { SAMPLE_GROUPS } from './samples.js';
 const list = document.getElementById('file-list');
 const empty = document.getElementById('empty');
 const viewerEl = document.getElementById('viewer');
+const app = document.querySelector('.app');
 
 // Download button on; Back returns to the file list (same as the browser Back button).
 const viewer = createDocViewer(viewerEl, { download: true, onBack: () => goBack() });
@@ -34,6 +35,7 @@ function renderList() {
 function showViewer() {
   empty.hidden = true;
   viewerEl.hidden = false;
+  app.classList.add('viewing'); // phones: hide the top bar so the document gets the full screen
   // One history entry while a document is open, so browser Back returns to the list.
   if (history.state?.view !== 'doc') history.pushState({ view: 'doc' }, '');
 }
@@ -50,6 +52,7 @@ function goHome() {
   renderList();
   viewerEl.hidden = true;
   empty.hidden = false;
+  app.classList.remove('viewing');
 }
 
 function goBack() {
