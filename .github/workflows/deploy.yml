@@ -1,4 +1,4 @@
-﻿name: Deploy to GitHub Pages
+name: Deploy to GitHub Pages
 
 # One Pages site, three builds:
 #   /          production  - built from the main branch
