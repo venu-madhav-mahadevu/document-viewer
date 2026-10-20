@@ -77,6 +77,13 @@ dependencies used only by the demos, so the production viewer ships just its own
 vulnerabilities. The full audit flags only `sprintf-js`, which belongs to mammoth's command-line
 tool and never runs in the browser.
 
+## View only
+
+The demo app is view only: visitors open the documents listed on the home screen (or a same-origin
+link such as `?src=/samples/report.pdf`). There is no way to open files from the visitor's computer,
+dropped files are blocked, and the Download button is hidden. Developers embedding the component can
+still call `viewer.open(file)` with any File, Blob or URL their application provides.
+
 ## Sample files
 
 `public/samples/` has 17 example files covering all 15 supported formats. They are listed on the

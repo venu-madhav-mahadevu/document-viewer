@@ -1,13 +1,10 @@
 import './app.css';
-import { createDocViewer, ACCEPT, formatBytes } from './viewer/index.js';
+import { createDocViewer, formatBytes } from './viewer/index.js';
 import { SAMPLE_GROUPS } from './samples.js';
 
-const fileInput = document.getElementById('file-input');
-fileInput.accept = ACCEPT; // only the supported formats
 const list = document.getElementById('file-list');
 const empty = document.getElementById('empty');
 const viewerEl = document.getElementById('viewer');
-const overlay = document.getElementById('drop-overlay');
 
 // Public site: view only. Back returns to the file list (same as the browser Back button).
 const viewer = createDocViewer(viewerEl, { download: false, onBack: () => goBack() });
@@ -73,19 +70,10 @@ function add(newFiles) {
   if (first !== -1) show(first);
 }
 
-fileInput.addEventListener('change', () => { add([...fileInput.files]); fileInput.value = ''; });
-document.getElementById('empty-open').addEventListener('click', () => fileInput.click());
-
-let dragDepth = 0;
-window.addEventListener('dragenter', (e) => { if (e.dataTransfer?.types.includes('Files')) { dragDepth++; overlay.hidden = false; } });
-window.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; overlay.hidden = true; } });
+// View only: files cannot be opened from the user's computer. Block drops so the
+// browser doesn't open a dropped file on its own either.
 window.addEventListener('dragover', (e) => e.preventDefault());
-window.addEventListener('drop', (e) => {
-  e.preventDefault();
-  dragDepth = 0;
-  overlay.hidden = true;
-  add([...(e.dataTransfer?.files || [])]);
-});
+window.addEventListener('drop', (e) => e.preventDefault());
 
 const samplesEl = document.getElementById('samples');
 // Exact sample sizes, recorded at build time (scripts/sample-sizes.mjs).

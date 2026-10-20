@@ -12,31 +12,25 @@
     <div class="app">
       <aside class="app-sidebar" aria-label="Open documents">
         <button id="home" type="button" class="brand" title="Home and samples">Docs Viewer</button>
-        <label class="open-btn">
-          <input id="file-input" type="file" multiple hidden />
-          Open files
-        </label>
         <ul id="file-list" class="file-list"></ul>
         <a class="demos-link" href="./demos/index.html">Library demos with code</a>
         <a class="demos-link" href="./demos/architecture.html">Architecture</a>
-        <p class="privacy">Files open in your browser only. Nothing is uploaded.</p>
+        <p class="privacy">View only. Documents open in your browser; nothing is uploaded or downloaded.</p>
       </aside>
       <main class="main">
         <div id="empty" class="empty">
-          <div class="drop">
-            <h1>Drop a document here</h1>
-            <p>PDF · Word (.doc .docx .docm) · Excel (.xls .xlsx .xlsm .csv) · PowerPoint (.ppt .pptx) · Images (.jpg .jpeg .tif .tiff) · Text (.txt)</p>
-            <button id="empty-open" type="button" class="open-btn">Choose files</button>
-          </div>
-          <section class="samples" aria-labelledby="samples-title">
-            <h2 id="samples-title">Or try a sample</h2>
+          <header class="intro">
+            <h1>Documents</h1>
+            <p>Select a document to view. View only: documents cannot be opened from your computer or downloaded.</p>
+            <p class="intro-formats">PDF · Word (.doc .docx .docm) · Excel (.xls .xlsx .xlsm .csv) · PowerPoint (.ppt .pptx) · Images (.jpg .jpeg .tif .tiff) · Text (.txt)</p>
+          </header>
+          <section class="samples" aria-label="Documents">
             <div id="samples"></div>
           </section>
         </div>
         <div id="viewer" class="viewer" hidden></div>
       </main>
     </div>
-    <div id="drop-overlay" class="drop-overlay" hidden>Drop to open</div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
