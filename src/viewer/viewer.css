@@ -352,3 +352,6 @@
 .dv-ppt-bullet { display: inline-block; text-indent: 0; padding-right: 0.3em; box-sizing: border-box; }
 .dv-ppt-picture { display: block; width: 100%; height: 100%; object-fit: fill; }
 .dv-ppt-line { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+/* Thin lines stay at least 1 screen px when the page is zoomed out to fit a phone. */
+.dv-legacy-table td { border-width: max(1px, calc(1px / var(--dv-zoom, 1))); }
