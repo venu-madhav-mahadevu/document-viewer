@@ -11,12 +11,14 @@
  * exact line breaking) is simplified.
  */
 
+import { bulletCode } from '../bullets.js';
+
 const cp1252 = new TextDecoder('windows-1252');
 const utf16 = new TextDecoder('utf-16le');
 
 // FibRgFcLcb97 starts at byte 154 of the FIB; each entry is an (fc, lcb) pair.
 const FIB_RGFCLCB = 154;
-const FC = { stshf: 1, plcfBteChpx: 12, plcfBtePapx: 13, sttbfFfn: 15, clx: 33, plfLst: 73, plfLfo: 74 };
+const FC = { stshf: 1, plcfSed: 6, plcfBteChpx: 12, plcfBtePapx: 13, sttbfFfn: 15, clx: 33, plfLst: 73, plfLfo: 74 };
 
 // Word's 16 "ico" colors.
 const ICO = [null, '#000000', '#0000ff', '#00ffff', '#00ff00', '#ff00ff', '#ff0000', '#ffff00', '#ffffff',
@@ -253,8 +255,6 @@ function formatNumber(n, nfc) {
   }
 }
 
-// Symbol / Wingdings bullets live in the private-use area: map the common ones.
-const BULLETS = { 0xf0b7: '•', 0xf0a7: '▪', 0xf06f: 'o', 0xf0d8: '➢', 0xf0fc: '✓', 0xf076: '❖', 0xf0a8: '◆', 0xf06e: '■', 0xf071: '❑' };
 
 // ----------------------------------------------------------------- FKP runs
 
@@ -299,6 +299,33 @@ function findRun(runs, fc) {
     else return mid;
   }
   return -1;
+}
+
+// ------------------------------------------------------------------ section
+
+/** Page size and margins (twips) of the first section; Word 97 defaults when not stored. */
+export function readPageSetup(wd, table) {
+  const page = { width: 12240, height: 15840, left: 1800, right: 1800, top: 1440, bottom: 1440 };
+  const fc = u32(wd, FIB_RGFCLCB + FC.plcfSed * 8);
+  const lcb = u32(wd, FIB_RGFCLCB + FC.plcfSed * 8 + 4);
+  if (!lcb) return page;
+  const n = (lcb - 4) / 16;
+  if (n < 1) return page;
+  const fcSepx = u32(table, fc + (n + 1) * 4 + 2);
+  if (fcSepx === 0xffffffff || fcSepx + 2 > wd.length) return page;
+  const cb = u16(wd, fcSepx);
+  forEachSprm(wd, fcSepx + 2, Math.min(wd.length, fcSepx + 2 + cb), (op, at) => {
+    switch (op) {
+      case 0xb01f: page.width = u16(wd, at); break;
+      case 0xb020: page.height = u16(wd, at); break;
+      case 0xb021: page.left = u16(wd, at); break;
+      case 0xb022: page.right = u16(wd, at); break;
+      case 0x9023: page.top = Math.abs(i16(wd, at)); break;
+      case 0x9024: page.bottom = Math.abs(i16(wd, at)); break;
+      default:
+    }
+  });
+  return page;
 }
 
 // --------------------------------------------------------------- document
@@ -423,7 +450,7 @@ export function readWordDocument(wd, table) {
     let marker = '';
     for (const code of lvl.text) {
       if (code < 9) marker += formatNumber(c[code] ?? levels[code]?.start ?? 1, levels[code]?.nfc ?? 0);
-      else marker += BULLETS[code] ?? (code >= 0xf000 ? '•' : String.fromCharCode(code));
+      else marker += bulletCode(code, fonts[lvl.chp.font] || ''); // Symbol / Wingdings -> Unicode
     }
     para.list = { marker, pap: lvl.pap, chp: lvl.chp };
   }

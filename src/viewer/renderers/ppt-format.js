@@ -356,6 +356,8 @@ export function readPresentation(doc, pictureBlobs) {
         }
         if (text) {
           shape.text = {
+            // PowerPoint auto-fits placeholder, title and body text to its box (not free text boxes).
+            placeholder: !!placeholder || [0, 1, 5, 6, 7, 8].includes(type),
             type, anchor: opt[0x087] ?? (type === 0 || type === 6 ? 1 : 0), wrap: opt[0x085] !== 2,
             insets: [opt[0x082] ?? 45720, opt[0x083] ?? 91440, opt[0x084] ?? 45720, opt[0x081] ?? 91440].map((v) => v / EMU_PER_MU),
             paragraphs: buildParagraphs(text, type, style, ctx),

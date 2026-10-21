@@ -194,7 +194,7 @@
   border-right: 1px solid var(--dv-border); border-bottom: 1px solid var(--dv-border);
   padding: 2px 6px; height: 21px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.dv-grid td { background: var(--dv-surface); }
+.dv-grid td { background: var(--dv-surface); vertical-align: bottom; } /* Excel aligns cells to the bottom by default */
 .dv-grid td.dv-num { text-align: right; font-variant-numeric: tabular-nums; }
 .dv-grid thead th {
   position: sticky; top: 0; z-index: 2; background: var(--dv-canvas);
@@ -355,3 +355,9 @@
 
 /* Thin lines stay at least 1 screen px when the page is zoomed out to fit a phone. */
 .dv-legacy-table td { border-width: max(1px, calc(1px / var(--dv-zoom, 1))); }
+
+/* Word documents hyphenate only when the document asks for it (docx-preview always does). */
+.dv-docx .docx { hyphens: manual; }
+.dv-docx.dv-hyphenate .docx { hyphens: auto; }
+
+.dv-fit { flex: none; }

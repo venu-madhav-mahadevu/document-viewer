@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Client-side document viewer (PDF, Word, Excel, PowerPoint, images, text) - no external services",
   "scripts": {
-    "predev": "node scripts/copy-pdfjs-assets.mjs && node scripts/copy-lo-assets.mjs && node scripts/sample-sizes.mjs",
+    "predev": "node scripts/copy-pdfjs-assets.mjs && node scripts/copy-fonts.mjs && node scripts/copy-lo-assets.mjs && node scripts/sample-sizes.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/copy-pdfjs-assets.mjs && node scripts/copy-lo-assets.mjs && node scripts/sample-sizes.mjs",
+    "prebuild": "node scripts/copy-pdfjs-assets.mjs && node scripts/copy-fonts.mjs && node scripts/copy-lo-assets.mjs && node scripts/sample-sizes.mjs",
     "build": "vite build",
     "preview": "vite preview --port 5181"
   },
@@ -13,6 +13,11 @@
   "license": "UNLICENSED",
   "type": "module",
   "dependencies": {
+    "@fontsource/arimo": "^5.3.0",
+    "@fontsource/caladea": "^5.3.0",
+    "@fontsource/carlito": "^5.3.0",
+    "@fontsource/cousine": "^5.3.0",
+    "@fontsource/tinos": "^5.3.0",
     "cfb": "^1.2.2",
     "docx-preview": "^0.4.1",
     "jszip": "^3.10.2",

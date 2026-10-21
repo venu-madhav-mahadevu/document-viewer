@@ -1,4 +1,6 @@
 import JSZip from 'jszip';
+import { bulletGlyph } from '../bullets.js';
+import { shrinkToFit } from '../fit.js';
 import { el, sanitizeLinks } from '../sanitize.js';
 import { clonePagesForPrint, PAGE_WIDTH, PAGE_WIDTH_LANDSCAPE } from '../print.js';
 
@@ -269,7 +271,14 @@ function inheritedRunProps(ctx, sp, lvl) {
     if (!('bullet' in props) && lvlPr) {
       if (child(lvlPr, 'buNone')) props.bullet = null;
       else if (child(lvlPr, 'buChar')) props.bullet = attr(child(lvlPr, 'buChar'), 'char');
+      else if (child(lvlPr, 'buAutoNum')) props.bullet = { autoNum: attr(child(lvlPr, 'buAutoNum'), 'type') };
     }
+    if (props.buFont == null && child(lvlPr, 'buFont')) props.buFont = attr(child(lvlPr, 'buFont'), 'typeface');
+    if (props.marL == null && attr(lvlPr, 'marL') != null) props.marL = Number(attr(lvlPr, 'marL'));
+    if (props.indent == null && attr(lvlPr, 'indent') != null) props.indent = Number(attr(lvlPr, 'indent'));
+    if (props.lnSpc == null && attr(child(lvlPr, 'lnSpc', 'spcPct'), 'val')) props.lnSpc = Number(attr(child(lvlPr, 'lnSpc', 'spcPct'), 'val'));
+    if (props.spcBef == null && attr(child(lvlPr, 'spcBef', 'spcPts'), 'val')) props.spcBef = Number(attr(child(lvlPr, 'spcBef', 'spcPts'), 'val'));
+    if (props.spcAft == null && attr(child(lvlPr, 'spcAft', 'spcPts'), 'val')) props.spcAft = Number(attr(child(lvlPr, 'spcAft', 'spcPts'), 'val'));
   }
   if (props.sz == null) {
     const d = DEFAULT_SIZES[ph?.type] ?? (ph ? DEFAULT_SIZES.body : DEFAULT_SIZES.other);
@@ -284,13 +293,18 @@ function renderText(txBody, sp, ctx) {
   const pick = (name) => [bodyPr, ...inheritedBodyPr].map((b) => attr(b, name)).find((v) => v != null);
 
   const box = el('div', 'dv-pptx-text');
+  // "Shrink text on overflow" (normAutofit), set on the shape or inherited from its layout.
+  if ([bodyPr, ...inheritedBodyPr].some((b) => child(b, 'normAutofit'))) box.dataset.fit = '1';
   const anchor = pick('anchor') || 't';
   box.style.justifyContent = anchor === 'ctr' ? 'center' : anchor === 'b' ? 'flex-end' : 'flex-start';
   const ins = (name, def) => px(pick(name) ?? def);
   box.style.padding = `${ins('tIns', 45720)}px ${ins('rIns', 91440)}px ${ins('bIns', 45720)}px ${ins('lIns', 91440)}px`;
   if (pick('vert') === 'vert' || pick('vert') === 'eaVert') box.style.writingMode = 'vertical-rl';
   if (pick('wrap') === 'none') box.style.whiteSpace = 'nowrap';
+  // "Shrink text on overflow": PowerPoint stores the scale it applied to fonts and line spacing.
   const fontScale = Number(attr(child(bodyPr, 'normAutofit'), 'fontScale') || 100000) / 100000;
+  const lnReduction = Number(attr(child(bodyPr, 'normAutofit'), 'lnSpcReduction') || 0) / 100000;
+  const autoNum = new Map(); // level -> counter, for numbered bullets
   // Shapes (not text boxes) take their default text color from the shape style.
   const styleColor = colorFrom(child(sp, 'style', 'fontRef'), ctx.theme);
 
@@ -300,14 +314,49 @@ function renderText(txBody, sp, ctx) {
     const inh = inheritedRunProps(ctx, sp, lvl);
     const para = el('p');
     para.style.textAlign = { ctr: 'center', r: 'right', just: 'justify', dist: 'justify' }[attr(pPr, 'algn') || inh.algn] || 'left';
-    if (lvl) para.style.marginLeft = `${lvl * 24}px`;
+    // Indents from the file (marL = text start, indent = bullet offset, usually negative).
+    const marL = attr(pPr, 'marL') != null ? Number(attr(pPr, 'marL')) : inh.marL;
+    const indent = attr(pPr, 'indent') != null ? Number(attr(pPr, 'indent')) : inh.indent;
+    if (marL != null) para.style.paddingLeft = `${px(marL)}px`;
+    else if (lvl) para.style.paddingLeft = `${lvl * 24}px`;
+    if (indent) para.style.textIndent = `${px(indent)}px`;
+    // Spacing: line spacing (percent), space before / after (1/100 pt).
+    const lnSpc = attr(child(pPr, 'lnSpc', 'spcPct'), 'val') ? Number(attr(child(pPr, 'lnSpc', 'spcPct'), 'val')) : inh.lnSpc;
+    if (lnSpc || lnReduction) para.style.lineHeight = String(Math.max(0.8, ((lnSpc || 100000) / 100000 - lnReduction) * 1.2));
+    const spc = (name, inherited) => {
+      const v = attr(child(pPr, name, 'spcPts'), 'val');
+      return v != null ? Number(v) : inherited;
+    };
+    const before = spc('spcBef', inh.spcBef);
+    const after = spc('spcAft', inh.spcAft);
+    if (before) para.style.marginTop = `${(before / 100) * fontScale * PT_TO_PX}px`;
+    if (after) para.style.marginBottom = `${(after / 100) * fontScale * PT_TO_PX}px`;
 
     let bullet = inh.bullet;
     if (child(pPr, 'buNone')) bullet = null;
     else if (child(pPr, 'buChar')) bullet = attr(child(pPr, 'buChar'), 'char');
-    else if (child(pPr, 'buAutoNum')) bullet = '•';
+    else if (child(pPr, 'buAutoNum')) bullet = { autoNum: attr(child(pPr, 'buAutoNum'), 'type') };
+    const buFont = attr(child(pPr, 'buFont'), 'typeface') || inh.buFont || '';
     const hasText = kids(p).some((r) => (r.localName === 'r' || r.localName === 'fld') && child(r, 't')?.textContent);
-    if (bullet && hasText) para.append(el('span', 'dv-pptx-bullet', `${bullet} `));
+    if (bullet && hasText) {
+      let text;
+      if (typeof bullet === 'object') { // numbered: 1. 2. 3. / a) b) / i. ii.
+        const n = (autoNum.get(lvl) || 0) + 1;
+        autoNum.set(lvl, n);
+        for (const k of [...autoNum.keys()]) if (k > lvl) autoNum.delete(k);
+        const type = bullet.autoNum || 'arabicPeriod';
+        const value = /alphaLc/.test(type) ? String.fromCharCode(96 + n) : /alphaUc/.test(type) ? String.fromCharCode(64 + n)
+          : /romanLc/.test(type) ? ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x'][n - 1] || String(n)
+            : /romanUc/.test(type) ? ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n - 1] || String(n) : String(n);
+        text = /ParenBoth/.test(type) ? `(${value})` : /ParenR/.test(type) ? `${value})` : `${value}.`;
+      } else {
+        text = bulletGlyph(bullet, buFont); // Wingdings "§" -> "▪", Symbol "·" -> "•"
+      }
+      const span = el('span', 'dv-pptx-bullet', text);
+      if (indent < 0) { span.style.display = 'inline-block'; span.style.minWidth = `${px(-indent)}px`; span.style.textIndent = '0'; }
+      else span.append('  ');
+      para.append(span);
+    } else if (!bullet) autoNum.clear();
 
     const endSz = Number(attr(child(p, 'endParaRPr'), 'sz') || 0) / 100;
     para.style.fontSize = `${(endSz || inh.sz) * fontScale * PT_TO_PX}px`;
@@ -598,6 +647,7 @@ export async function renderPptx({ buffer, mount }) {
     slide.append(content);
     slide.append(el('div', 'dv-pptx-num', String(index)));
     root.append(slide);
+    shrinkToFit(slide);
   }
   sanitizeLinks(root);
 

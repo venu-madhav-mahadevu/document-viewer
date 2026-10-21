@@ -41,7 +41,22 @@ const ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2
  *   onBack: when given, a Back button appears at the left of the toolbar and calls it.
  *   badge: show the format label (PDF, Word, Spreadsheet...) next to the file name. Off by default.
  */
+/**
+ * Look-alike fonts for Calibri, Cambria, Arial, Times New Roman and Courier New on devices
+ * that don't have them (public/fonts, made by scripts/copy-fonts.mjs). Loaded once.
+ */
+function loadOfficeFonts() {
+  if (document.getElementById('dv-office-fonts')) return;
+  const base = /\/demos\//.test(location.pathname) ? new URL('../', document.baseURI) : new URL(document.baseURI);
+  const link = document.createElement('link');
+  link.id = 'dv-office-fonts';
+  link.rel = 'stylesheet';
+  link.href = new URL('fonts/office-fonts.css', base).href;
+  document.head.append(link);
+}
+
 export function createDocViewer(container, options = {}) {
+  loadOfficeFonts();
   const { maxBytes = 200 * 1024 * 1024, download = true, print = true, fetchInit, onBack, badge: showBadge = false } = options;
 
   const iconButton = (name, label, extraClass = '') => {
@@ -275,11 +290,17 @@ export function createDocViewer(container, options = {}) {
   }, { passive: false });
 
   let lastWidth = 0;
+  // Next frame: re-fitting inside the callback would resize the observed box again
+  // ("ResizeObserver loop" error in Safari).
+  let fitFrame = 0;
   new ResizeObserver(() => {
-    const width = scroller.clientWidth;
-    if (width === lastWidth) return;
-    lastWidth = width;
-    if (autoFit) fitWidth();
+    cancelAnimationFrame(fitFrame);
+    fitFrame = requestAnimationFrame(() => {
+      const width = scroller.clientWidth;
+      if (width === lastWidth) return;
+      lastWidth = width;
+      if (autoFit) fitWidth();
+    });
   }).observe(scroller);
 
   // ---------- Search ----------
