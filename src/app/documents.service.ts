@@ -15,9 +15,9 @@ export const SAMPLE_GROUPS: SampleGroup[] = [
     ['onboarding-guide.doc', '.doc Word 97-2003'],
   ] },
   { title: 'Excel', files: [
-    ['regional-sales.xlsx', '.xlsx, merged cells, 2 sheets'],
-    ['branches-macro.xlsm', '.xlsm macro-enabled'],
-    ['branches-legacy.xls', '.xls Excel 97-2003'],
+    ['regional-sales.xlsx', '.xlsx colorful: shading, merged cells, totals, 2 sheets'],
+    ['branches-macro.xlsm', '.xlsm macro-enabled, color-coded ratios'],
+    ['branches-legacy.xls', '.xls Excel 97-2003 with cell colors'],
     ['accounts.csv', '.csv with quoted commas'],
     ['formatted-report.xlsx', '.xlsx formats and colors: currency, %, dates, fills, fonts, borders (3 sheets)'],
     ['formatted-report.xls', '.xls Excel 97-2003 copy of the formats and colors file'],
