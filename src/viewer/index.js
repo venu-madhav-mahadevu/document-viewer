@@ -47,7 +47,9 @@ const ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2
  */
 function loadOfficeFonts() {
   if (document.getElementById('dv-office-fonts')) return;
-  const base = /\/demos\//.test(location.pathname) ? new URL('../', document.baseURI) : new URL(document.baseURI);
+  // Demo pages live in demos/ (or a sub-folder of it); the fonts are at the site root.
+  const demos = location.pathname.indexOf('/demos/');
+  const base = demos >= 0 ? new URL(location.pathname.slice(0, demos + 1), location.origin) : new URL(document.baseURI);
   const link = document.createElement('link');
   link.id = 'dv-office-fonts';
   link.rel = 'stylesheet';

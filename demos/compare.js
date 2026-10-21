@@ -1,3 +1,4 @@
+import './sw-cleanup.js';
 // Runs every library against one sample of each of the 15 supported formats,
 // live in the browser, and shows the results as a matrix.
 import './demo.css';

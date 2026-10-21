@@ -6,6 +6,7 @@ import { defineConfig } from 'vite';
 const demoPages = Object.fromEntries(
   readdirSync('demos').filter((f) => f.endsWith('.html')).map((f) => [`demos/${f.replace('.html', '')}`, resolve('demos', f)]),
 );
+demoPages['demos/convert/index'] = resolve('demos', 'convert', 'index.html'); // in-browser LibreOffice demo
 
 const isolation = { 'Cross-Origin-Opener-Policy': 'same-origin', 'Cross-Origin-Embedder-Policy': 'require-corp' };
 
@@ -18,7 +19,7 @@ export default defineConfig({
     rollupOptions: { input: { main: resolve('index.html'), ...demoPages } },
   },
   // Cross-origin isolation (needed by the LibreOffice WebAssembly engine in
-  // demos/browser-convert.html). Production hosts send the same two headers;
+  // demos/convert/). Production hosts send the same two headers;
   // GitHub Pages cannot, so that page also registers coi-serviceworker.
   server: { port: Number(process.env.PORT) || 5180, strictPort: !!process.env.PORT, headers: isolation },
   preview: { headers: isolation },

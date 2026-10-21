@@ -1,3 +1,4 @@
+import './sw-cleanup.js';
 // Device check: open this page on a phone or tablet to see whether the viewer
 // works there - browser features it needs, then all 15 formats opened for real.
 import './demo.css';

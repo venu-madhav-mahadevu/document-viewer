@@ -1,9 +1,9 @@
-import './demo.css';
+import '../demo.css';
 import hljs from 'highlight.js/lib/core';
 import javascript from 'highlight.js/lib/languages/javascript';
 import 'highlight.js/styles/github.css';
-import { createDocViewer, formatBytes, formatDuration } from '../src/viewer/index.js';
-import source from './browser-convert.js?raw';
+import { createDocViewer, formatBytes, formatDuration } from '../../src/viewer/index.js';
+import source from './convert.js?raw';
 
 // #region demo
 import { WorkerBrowserConverter } from '@matbee/libreoffice-converter/browser';
@@ -146,7 +146,7 @@ $('start').addEventListener('click', async () => {
 
 async function loadSample() {
   const name = $('sample').value;
-  const res = await fetch(new URL(`../samples/${name}`, location.href));
+  const res = await fetch(new URL(`../../samples/${name}`, location.href));
   show(await res.arrayBuffer(), name);
 }
 $('sample').addEventListener('change', loadSample);

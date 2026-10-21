@@ -3,7 +3,6 @@ dist/
 public/pdfjs/
 *.log
 public/samples/sizes.json
-public/demos/lo/
-public/demos/coi-serviceworker.js
+public/demos/convert/
 public/fonts/
 .angular/
