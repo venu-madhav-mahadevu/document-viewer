@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { el } from '../sanitize.js';
+import { parseWorkbook } from './sheet-parse.js';
 
 const MAX_ROWS = 5000;
 
@@ -47,18 +48,36 @@ const MAX_COLS = 256;
  */
 function parseInWorker(buffer, isCsv) {
   return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('./sheet.worker.js', import.meta.url), { type: 'module' });
+    let worker;
+    try {
+      worker = new Worker(new URL('./sheet.worker.js', import.meta.url), { type: 'module' });
+    } catch (err) {
+      reject(Object.assign(err, { workerFailed: true }));
+      return;
+    }
     worker.onmessage = ({ data }) => {
       worker.terminate();
       if (data.ok) resolve(data.wb);
-      else reject(new Error(data.message));
+      else reject(new Error(data.message)); // the file itself could not be read
     };
     worker.onerror = (e) => {
       worker.terminate();
-      reject(new Error(e.message || 'This spreadsheet could not be read.'));
+      // The worker could not start or load (not a problem with the file).
+      reject(Object.assign(new Error(e.message || 'Spreadsheet worker failed.'), { workerFailed: true }));
     };
     worker.postMessage({ buffer, isCsv, maxRows: MAX_ROWS });
   });
+}
+
+/** Worker first (keeps big files from freezing the page); the page itself if workers are blocked. */
+async function parse(buffer, isCsv) {
+  try {
+    return await parseInWorker(buffer, isCsv);
+  } catch (err) {
+    if (!err.workerFailed) throw err;
+    console.warn('Spreadsheet worker unavailable; reading on the main thread.', err);
+    return parseWorkbook(buffer, isCsv, MAX_ROWS);
+  }
 }
 
 /**
@@ -67,7 +86,7 @@ function parseInWorker(buffer, isCsv) {
  * can ever be interpreted as HTML.
  */
 export async function renderSheet({ buffer, name, mount, onContentChange, download }) {
-  const wb = await parseInWorker(buffer, /\.csv$/i.test(name));
+  const wb = await parse(buffer, /\.csv$/i.test(name));
 
   const root = el('div', 'dv-sheet');
   const grid = el('div', 'dv-sheet-grid');

@@ -12,16 +12,20 @@
     <div class="app">
       <aside class="app-sidebar" aria-label="Open documents">
         <button id="home" type="button" class="brand" title="Home and samples">Docs Viewer</button>
+        <label class="open-btn" title="Open a document from your computer (it stays in your browser)">
+          <input id="file-input" type="file" multiple hidden />
+          Open file
+        </label>
         <ul id="file-list" class="file-list"></ul>
         <a class="demos-link" href="./demos/index.html">Library demos with code</a>
         <a class="demos-link" href="./demos/architecture.html">Architecture</a>
-        <p class="privacy">Documents open in your browser; nothing is uploaded. Use Download to save a copy.</p>
+        <p class="privacy">Documents open in your browser; nothing is uploaded, including files you open yourself.</p>
       </aside>
       <main class="main">
         <div id="empty" class="empty">
           <header class="intro">
             <h1>Documents</h1>
-            <p>Select a document to view. Use the Download button to save the original file.</p>
+            <p>Select a document to view, or test your own: <button id="empty-open" type="button" class="link-btn">open a file</button> or drop it anywhere on this page. Files never leave your browser.</p>
             <p class="intro-formats">PDF · Word (.doc .docx .docm) · Excel (.xls .xlsx .xlsm .csv) · PowerPoint (.ppt .pptx) · Images (.jpg .jpeg .tif .tiff) · Text (.txt)</p>
           </header>
           <section class="samples" aria-label="Documents">
@@ -31,6 +35,7 @@
         <div id="viewer" class="viewer" hidden></div>
       </main>
     </div>
+    <div id="drop-overlay" class="drop-overlay" hidden>Drop to open (stays in your browser)</div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
