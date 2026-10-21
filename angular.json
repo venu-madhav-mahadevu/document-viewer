@@ -61,7 +61,9 @@
                 },
                 "fonts": false
               },
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "serviceWorker": "ngsw-config.json",
+              "baseHref": "/document-viewer/angular/"
             },
             "development": {
               "optimization": false,

@@ -1,5 +1,5 @@
 import {
-  AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, effect, input, output, viewChild,
+  ChangeDetectionStrategy, Component, ElementRef, OnDestroy, afterNextRender, effect, input, output, viewChild,
 } from '@angular/core';
 import { createDocViewer, type DocViewer as Viewer } from '../../viewer/index.js';
 
@@ -17,7 +17,7 @@ import { createDocViewer, type DocViewer as Viewer } from '../../viewer/index.js
   styles: [':host { display: block; height: 100%; min-height: 0; } .doc-viewer-host { height: 100%; }'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DocViewerComponent implements AfterViewInit, OnDestroy {
+export class DocViewerComponent implements OnDestroy {
   /** File, Blob, ArrayBuffer or same-origin URL to show. */
   readonly src = input<File | Blob | ArrayBuffer | string | null>(null);
   /** File name, when `src` is a Blob or ArrayBuffer. */
@@ -35,6 +35,9 @@ export class DocViewerComponent implements AfterViewInit, OnDestroy {
   private pendingLoading?: [string, string | undefined, 'loading' | 'error'];
 
   constructor() {
+    // Create the viewer once the component is in the page (browser only).
+    afterNextRender(() => this.init());
+
     // Open again whenever [src] changes.
     effect(() => {
       const src = this.src();
@@ -46,7 +49,7 @@ export class DocViewerComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  ngAfterViewInit(): void {
+  private init(): void {
     this.viewer = createDocViewer(this.host().nativeElement, {
       download: this.download(),
       print: this.print(),

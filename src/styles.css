@@ -101,3 +101,9 @@ body { background: var(--bg); color: var(--text); font: 14px/1.4 "Segoe UI", sys
 /* Angular: the root component fills the window like the old <body>. */
 app-root { display: block; height: 100%; }
 .viewer doc-viewer { height: 100%; }
+
+/* Space kept for gallery groups that render later (@defer). */
+.sample-group-placeholder { min-height: 180px; }
+
+/* "open a file" inside the intro text */
+.link-btn { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }

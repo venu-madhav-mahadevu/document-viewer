@@ -1,3 +1,4 @@
+import { formatBytes, formatDuration } from './format.js';
 // Styles: src/viewer/viewer.css is listed in angular.json.
 import { detectKind } from './detect.js';
 import { FORMATS, SUPPORTED_EXTENSIONS } from './formats.js'; // all libraries and formats, declared once
@@ -8,21 +9,8 @@ import { createThumbnails, cloneThumbnail } from './thumbs.js';
 import { printDocument } from './print.js';
 
 /** 1536 → "1.5 KB", 52428800 → "50 MB". */
-export function formatBytes(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ['KB', 'MB', 'GB'];
-  let value = bytes / 1024;
-  let i = 0;
-  while (value >= 1024 && i < units.length - 1) { value /= 1024; i++; }
-  return `${value >= 100 ? Math.round(value) : value.toFixed(1).replace(/\.0$/, '')} ${units[i]}`;
-}
 
 /** 350 → "0.35 s", 2140 → "2.1 s", 21700 → "22 s". */
-export function formatDuration(ms) {
-  if (ms < 1000) return `${(ms / 1000).toFixed(2)} s`;
-  if (ms < 10000) return `${(ms / 1000).toFixed(1)} s`;
-  return `${Math.round(ms / 1000)} s`;
-}
 
 const ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4];
 
@@ -47,7 +35,9 @@ const ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2
  */
 function loadOfficeFonts() {
   if (document.getElementById('dv-office-fonts')) return;
-  const base = /\/demos\//.test(location.pathname) ? new URL('../', document.baseURI) : new URL(document.baseURI);
+  // Demo pages live in demos/ (or a sub-folder of it); the fonts are at the site root.
+  const demos = location.pathname.indexOf('/demos/');
+  const base = demos >= 0 ? new URL(location.pathname.slice(0, demos + 1), location.origin) : new URL(document.baseURI);
   const link = document.createElement('link');
   link.id = 'dv-office-fonts';
   link.rel = 'stylesheet';
@@ -599,3 +589,4 @@ export function createDocViewer(container, options = {}) {
 
 // Supported formats, e.g. for <input type="file" accept={ACCEPT}>.
 export { SUPPORTED_EXTENSIONS, ACCEPT, FORMATS, LIBRARIES } from './formats.js';
+export { formatBytes, formatDuration };

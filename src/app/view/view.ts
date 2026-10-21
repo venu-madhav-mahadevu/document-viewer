@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, resource, viewChild } from '@angular/core';
 import { Location } from '@angular/common';
 import { Router } from '@angular/router';
 import { DocViewerComponent } from '../doc-viewer/doc-viewer';
@@ -6,7 +6,8 @@ import { DocumentsService } from '../documents.service';
 
 /**
  * View page: /view?file=<sample path>  (or ?src=<same-origin URL>).
- * Downloads the document with a progress spinner, then shows it in <doc-viewer>.
+ * The document is loaded with resource(): loading and error states come built in, and
+ * switching to another document cancels the download still in progress (abortSignal).
  */
 @Component({
   selector: 'app-view',
@@ -24,26 +25,35 @@ export class ViewPage {
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly viewer = viewChild(DocViewerComponent);
-  protected readonly doc = signal<File | string | null>(null);
+
+  /** The sample file, downloaded with progress; re-runs (and cancels the old download) when ?file= changes. */
+  private readonly sample = resource({
+    params: () => (this.src() ? undefined : this.file()),
+    loader: ({ params: path, abortSignal }) =>
+      this.docs.load(path, (message) => this.viewer()?.loading(message, this.nameOf(path)), abortSignal),
+  });
+
+  /** What <doc-viewer> shows: a same-origin URL, or the downloaded sample. */
+  protected readonly doc = computed<File | string | null>(() =>
+    this.src() || (this.sample.hasValue() ? this.sample.value() : null) || null);
 
   constructor() {
+    // Spinner while downloading (large samples take seconds), message on failure.
     effect(() => {
       const viewer = this.viewer();
-      if (!viewer) return;
-      const file = this.file();
-      const src = this.src();
-      if (src) { this.doc.set(src); return; }
-      if (!file) return;
-      const name = file.split('/').pop() || file;
-      untracked(() => {
-        // Spinner straight away: large samples take seconds to download.
-        viewer.loading(`Loading ${name}…`, name);
-        this.docs
-          .load(file, (message) => viewer.loading(message, name))
-          .then((f) => { if (this.file() === file) this.doc.set(f); })
-          .catch((err: Error) => viewer.loading(`Could not load ${name} (${err.message}).`, name, 'error'));
-      });
+      const path = this.file();
+      if (!viewer || !path || this.src()) return;
+      const name = this.nameOf(path);
+      const status = this.sample.status();
+      if (status === 'loading' || status === 'reloading') viewer.loading(`Loading ${name}…`, name);
+      else if (status === 'error') {
+        viewer.loading(`Could not load ${name} (${(this.sample.error() as Error | undefined)?.message}).`, name, 'error');
+      }
     });
+  }
+
+  private nameOf(path: string): string {
+    return path.split('/').pop() || path;
   }
 
   /** Back: return to the list (same as the browser Back button). */

@@ -1,0 +1,37 @@
+{
+  "$schema": "./node_modules/@angular/service-worker/config/schema.json",
+  "index": "/index.html",
+  "assetGroups": [
+    {
+      "name": "app-shell",
+      "installMode": "prefetch",
+      "resources": {
+        "files": ["/favicon.ico", "/index.html", "/*.css", "/main-*.js"]
+      }
+    },
+    {
+      "name": "format-libraries",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": ["/*.js", "/*.mjs"]
+      }
+    },
+    {
+      "name": "viewer-assets",
+      "installMode": "lazy",
+      "updateMode": "lazy",
+      "resources": {
+        "files": ["/pdfjs/**", "/fonts/**"]
+      }
+    },
+    {
+      "name": "samples",
+      "installMode": "lazy",
+      "updateMode": "lazy",
+      "resources": {
+        "files": ["/samples/*.*"]
+      }
+    }
+  ]
+}

@@ -38,8 +38,23 @@ effects, exact line breaking) are simplified.
 
 ## Angular version (this branch)
 
-The app is an **Angular 21** application (standalone components, signals, zoneless change detection,
-hash routing). The viewer itself (`src/viewer/`) is unchanged, framework-free code wrapped in an
+The app is an **Angular 21** application built with current Angular features:
+
+| Feature | Where | Benefit |
+|---|---|---|
+| Zoneless change detection | `app.config.ts` | No zone.js; change detection only when signals change |
+| Signals, `input()` / `output()`, `viewChild()` | all components | Fine-grained updates |
+| Lazy routes (`loadComponent`) + `PreloadAllModules` | `app.routes.ts` | Home loads without the viewer; the view page is preloaded when idle |
+| `@defer (on viewport; on idle)` | home gallery | Lower groups render when needed |
+| `resource()` (experimental in Angular 21) | view page | Loading/error states built in; switching documents cancels the running download |
+| `afterNextRender()` | `<doc-viewer>` | Viewer created once the component is in the page |
+| Angular service worker (`ngsw-config.json`) | production build | Instant repeat visits and offline use; 36-50 MB test files are not cached |
+| `OnPush`, standalone components, built-in `@for`/`@if` | all | Less work per change, smaller bundles |
+
+First load is about 96 KB (compressed); each format's library loads only when such a file is opened.
+
+**Deployment path:** the production build uses `baseHref: /document-viewer/angular/` (GitHub Pages).
+For another server, change `baseHref` in `angular.json` (the service worker needs the real path). The viewer itself (`src/viewer/`) is unchanged, framework-free code wrapped in an
 Angular component:
 
 ```html
@@ -54,7 +69,7 @@ Angular component:
 | `src/app/documents.service.ts` | Sample list, download with progress, documents opened in this session |
 | `src/app/home/home.ts` | Home page: document gallery (`#/`) |
 | `src/app/view/view.ts` | View page: `#/view?file=<sample>` or `#/view?src=<same-origin URL>` |
-| `src/app/app.ts` | Shell: sidebar, routed page, phone layout, drop blocking |
+| `src/app/app.ts` | Shell: sidebar, Open file button, drag and drop, routed page, phone layout |
 
 The demo pages in `demos/` are not moved to Angular yet; the app links to the staging demos.
 
@@ -75,7 +90,7 @@ behind SSO, etc.). No backend is required.
 
 **Compatibility test** (`demos/compare.html`): runs all 11 libraries on one sample of each of the 15
 formats, live in the browser, and shows a pass / unreadable / fail matrix with a preview of every
-result. You can add your own files to test them against every library. Result on the samples: the
+result. Result on the samples: the
 Docs Viewer component opens 15 / 15; each single library opens only its own formats.
 
 `demos/` has one page per open-source library. Each page renders a sample file and shows the code

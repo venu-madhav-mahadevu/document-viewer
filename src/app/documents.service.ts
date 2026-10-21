@@ -60,13 +60,28 @@ export class DocumentsService {
       .catch(() => {});
   }
 
-  /** The sample at `path` as a File; reports progress while it downloads. */
-  async load(path: string, onProgress: (message: string) => void): Promise<File> {
+  /**
+   * Files the user opens from their computer (button or drag and drop). They stay in memory
+   * in this tab; nothing is uploaded. Returns the key to show the first one (?file=<key>).
+   */
+  openLocal(files: File[]): string | null {
+    let first: string | null = null;
+    for (const file of files) {
+      const path = `local:${file.name}:${file.size}:${file.lastModified}`;
+      if (!this.opened().some((d) => d.path === path)) this.opened.update((list) => [...list, { path, file }]);
+      first ??= path;
+    }
+    return first;
+  }
+
+  /** The sample at `path` as a File; reports progress while it downloads. `signal` cancels it. */
+  async load(path: string, onProgress: (message: string) => void, signal?: AbortSignal): Promise<File> {
     const cached = this.opened().find((d) => d.path === path);
     if (cached) return cached.file;
+    if (path.startsWith('local:')) throw new Error('this file was opened from your computer; please open it again');
 
     const name = path.split('/').pop() || path;
-    const res = await fetch(sampleUrl(path));
+    const res = await fetch(sampleUrl(path), { signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const total = Number(res.headers.get('content-length')) || this.sizes()[path] || 0;
     const reader = res.body!.getReader();

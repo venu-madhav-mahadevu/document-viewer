@@ -261,12 +261,4 @@ async function runAll(cols) {
 }
 
 document.getElementById('run').onclick = () => runAll(files.map((_, i) => i));
-document.getElementById('own').onchange = (e) => {
-  const added = [...e.target.files].map((file) => ({ ext: file.name.slice(file.name.lastIndexOf('.')), file: file.name, label: `${file.name.slice(0, 14)}${file.name.length > 14 ? '…' : ''}`, blob: file }));
-  const start = files.length;
-  files.push(...added);
-  drawGrid();
-  runAll(added.map((_, i) => start + i));
-  e.target.value = '';
-};
 drawGrid();
