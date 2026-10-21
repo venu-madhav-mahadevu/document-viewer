@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, Injector, afterNextRender, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { formatBytes } from '../viewer/format.js';
 import { ACCEPT } from '../viewer/formats.js';
+import { startPresence } from '../presence.js';
 import { DocumentsService } from './documents.service';
 
 /** Demo and architecture pages (not yet moved to Angular; served by the staging build). */
@@ -18,6 +19,7 @@ const DEMOS_URL = 'https://venu-madhav-mahadevu.github.io/document-viewer/stagin
     <div class="app" [class.viewing]="viewing()">
       <aside class="app-sidebar" aria-label="Open documents">
         <button type="button" class="brand" title="Home and samples" routerLink="/">Docs Viewer</button>
+        <div #presence class="presence-slot"></div>
         <label class="open-btn" title="Open a document from your computer (it stays in your browser)">
           <input type="file" multiple hidden [accept]="accept" (change)="openPicked($event)" />
           Open file
@@ -49,11 +51,14 @@ const DEMOS_URL = 'https://venu-madhav-mahadevu.github.io/document-viewer/stagin
 export class App {
   protected readonly docs = inject(DocumentsService);
   private readonly router = inject(Router);
+  private readonly injector = inject(Injector);
   protected readonly demosUrl = DEMOS_URL;
   protected readonly accept = ACCEPT;
   /** A file is being dragged over the page. */
   protected readonly dragging = signal(false);
   private dragDepth = 0;
+  /** "N online now · M testers today" (Firebase); empty when no Firebase config is set. */
+  private readonly presenceSlot = viewChild.required<ElementRef<HTMLElement>>('presence');
 
   private readonly url = toSignal(
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd), map(() => this.router.url)),
@@ -64,6 +69,10 @@ export class App {
   protected readonly activeFile = computed(() => this.router.parseUrl(this.url()).queryParams['file'] ?? null);
 
   constructor() {
+    afterNextRender(() => {
+      const presence = startPresence(this.presenceSlot().nativeElement, { env: 'angular' });
+      effect(() => presence.setPage(this.viewing() ? 'view' : 'home'), { injector: this.injector });
+    });
     // Drag and drop your own files anywhere on the page (read in the browser only).
     const hasFiles = (e: DragEvent) => [...(e.dataTransfer?.types || [])].includes('Files');
     window.addEventListener('dragenter', (e) => { if (hasFiles(e)) { this.dragDepth++; this.dragging.set(true); } });
