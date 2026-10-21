@@ -1,8 +1,10 @@
 import CFB from 'cfb';
 import { el } from '../sanitize.js';
 import { clonePagesForPrint, PAGE_WIDTH, PAGE_WIDTH_LANDSCAPE } from '../print.js';
-import { readWordDocument, paragraphStyle, charStyle } from './doc-format.js';
+import { readWordDocument, readPageSetup, paragraphStyle, charStyle } from './doc-format.js';
 import { readPresentation } from './ppt-format.js';
+import { bulletCode } from '../bullets.js';
+import { shrinkToFit } from '../fit.js';
 
 /*
  * Word 97-2003 (.doc) and PowerPoint 97-2003 (.ppt) preview.
@@ -236,10 +238,12 @@ export async function renderDoc({ buffer, mount }) {
   // Formatted reading first; plain text if this file's formatting can't be read.
   let blocks;
   let formatted = true;
+  let setup = null; // page size and margins from the file
   try {
     const wd = stream(cfb, 'WordDocument');
     const table = stream(cfb, view(wd).getUint16(0x0a, true) & 0x0200 ? '1Table' : '0Table');
     blocks = formattedBlocks(readWordDocument(wd, table));
+    try { setup = readPageSetup(wd, table); } catch { setup = null; }
   } catch (err) {
     console.warn('Word formatting could not be read; showing plain text.', err);
     formatted = false;
@@ -251,11 +255,17 @@ export async function renderDoc({ buffer, mount }) {
 
   // Lay the content out on Letter-sized pages, like a PDF: a new page starts at
   // each page break in the file and whenever a page is full.
-  const PAGE_HEIGHT = 1056; // 11 in at 96 dpi (CSS px), padding included
+  const tw = (v) => Math.round(v / 15); // twips -> CSS px
+  const PAGE_WIDTH_PX = setup ? tw(setup.width) : 816;
+  const PAGE_HEIGHT = setup ? tw(setup.height) : 1056; // padding included
   const pages = [];
   let page;
   const newPage = () => {
     page = el('div', 'dv-page dv-legacy-page');
+    if (setup) {
+      Object.assign(page.style, { width: `${PAGE_WIDTH_PX}px`, minHeight: `${PAGE_HEIGHT}px`,
+        padding: `${tw(setup.top)}px ${tw(setup.right)}px ${tw(setup.bottom)}px ${tw(setup.left)}px` });
+    }
     pages.push(page);
     root.append(page);
   };
@@ -309,7 +319,7 @@ export async function renderDoc({ buffer, mount }) {
   // "Page 2 of 5" at the bottom of each page, as in a printed PDF.
   pages.forEach((p, i) => p.append(el('span', 'dv-legacy-footer', `Page ${i + 1} of ${pages.length}`)));
 
-  const widthOf = () => 816;
+  const widthOf = () => PAGE_WIDTH_PX;
   return {
     pages: () => pages,
     pageWidth: widthOf,
@@ -414,15 +424,7 @@ function pptPictures(cfb) {
 
 const lines = (texts) => texts.flatMap((t) => t.split(/[\r\n]/)).map((s) => s.replace(/\x0b/g, ' ').trim()).filter(Boolean);
 
-// Symbol / Wingdings bullet characters -> Unicode.
-const WINGDINGS = { 0x6c: '●', 0x6e: '■', 0x71: '❑', 0x75: '◆', 0x76: '❖', 0xa7: '▪', 0xd8: '➢', 0xfc: '✓', 0x9f: '•' };
-function bulletText(code, fontName = '') {
-  if (code === undefined) return '•';
-  if (code >= 0xf000) code -= 0xf000;
-  if (/wingdings/i.test(fontName)) return WINGDINGS[code] ?? '•';
-  if (/symbol/i.test(fontName)) return code === 0xb7 ? '•' : code === 0xa8 ? '♦' : '•';
-  return String.fromCharCode(code);
-}
+const bulletText = (code, fontName = '') => (code === undefined ? '•' : bulletCode(code, fontName));
 
 /** One slide drawn like PowerPoint: positioned shapes, pictures and formatted text. */
 function renderDrawnSlide(slide, size, W, H, urlFor) {
@@ -476,6 +478,9 @@ function renderDrawnSlide(slide, size, W, H, urlFor) {
     if (sh.text) {
       const t = sh.text;
       const inner = el('div', 'dv-ppt-text');
+      // Placeholders, titles and body text shrink to their box; other text boxes only when
+      // their text would run off the bottom of the slide.
+      inner.dataset.fit = t.placeholder ? 'box' : 'slide';
       inner.style.padding = t.insets.map(px).join(' ');
       inner.style.justifyContent = ['flex-start', 'center', 'flex-end'][t.anchor % 3];
       if (!t.wrap) inner.style.whiteSpace = 'pre';
@@ -550,6 +555,7 @@ export async function renderPpt({ buffer, mount }) {
       const card = renderDrawnSlide(slide, drawn.size, W, H, urlFor);
       card.setAttribute('aria-label', `Slide ${i + 1}`);
       root.append(card);
+      shrinkToFit(card);
       return card;
     });
     return result(pages, W);

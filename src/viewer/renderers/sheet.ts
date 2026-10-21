@@ -3,6 +3,32 @@ import * as XLSX from 'xlsx';
 import { el } from '../sanitize.js';
 
 const MAX_ROWS = 5000;
+
+/** Cell background from its fill; text turns white on dark fills unless the font color is known. */
+function applyFill(td, style, hasFontColor) {
+  const rgb = style?.patternType && style.patternType !== 'none' ? style.fgColor?.rgb : null;
+  if (!rgb || !/^[0-9a-f]{6}$/i.test(rgb)) return;
+  td.style.backgroundColor = `#${rgb}`;
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(rgb.slice(i, i + 2), 16));
+  if (!hasFontColor && 0.299 * r + 0.587 * g + 0.114 * b < 140) td.style.color = '#ffffff';
+}
+
+/** Fonts, alignment, wrapping and borders (from xlsx-styles.js). */
+function applyFormat(td, f) {
+  const st = td.style;
+  if (f.b) st.fontWeight = '700';
+  if (f.i) st.fontStyle = 'italic';
+  const deco = [f.u && 'underline', f.strike && 'line-through'].filter(Boolean);
+  if (deco.length) st.textDecoration = deco.join(' ');
+  if (f.color) st.color = f.color;
+  if (f.size) st.fontSize = `${f.size}em`;
+  if (f.font) st.fontFamily = `"${f.font.replace(/"/g, '')}", "Segoe UI", Arial, sans-serif`;
+  if (f.align) st.textAlign = { centerContinuous: 'center', distributed: 'justify', fill: 'left' }[f.align] || f.align;
+  if (f.valign) st.verticalAlign = { center: 'middle', distributed: 'middle', justify: 'middle' }[f.valign] || f.valign;
+  if (f.wrap) { st.whiteSpace = 'pre-wrap'; st.overflowWrap = 'anywhere'; }
+  if (f.indent) st.paddingLeft = `${f.indent * 9 + 4}px`;
+  for (const [side, value] of Object.entries(f.border || {})) st[`border${side[0].toUpperCase()}${side.slice(1)}`] = value;
+}
 const MAX_COLS = 256;
 
 /**
@@ -51,7 +77,7 @@ export async function renderSheet({ buffer, name, mount, onContentChange, downlo
 
   function show(sheetName) {
     buttons.forEach((b) => b.setAttribute('aria-selected', String(b.textContent === sheetName)));
-    grid.replaceChildren(buildTable(wb.Sheets[sheetName], download));
+    grid.replaceChildren(buildTable(wb.Sheets[sheetName], download, wb.CellStyles?.[sheetName]));
     grid.scrollTo(0, 0);
     onContentChange?.();
   }
@@ -64,7 +90,7 @@ export async function renderSheet({ buffer, name, mount, onContentChange, downlo
   };
 }
 
-function buildTable(ws, download) {
+function buildTable(ws, download, formats) {
   const frag = document.createDocumentFragment();
   if (!ws || !ws['!ref']) {
     frag.append(el('p', 'dv-note', 'This sheet is empty.'));
@@ -111,6 +137,9 @@ function buildTable(ws, download) {
       const cell = ws[XLSX.utils.encode_cell({ r, c })];
       const td = el('td', null, cell ? XLSX.utils.format_cell(cell) : '');
       if (cell && cell.t === 'n') td.className = 'dv-num';
+      const format = formats?.[XLSX.utils.encode_cell({ r, c })];
+      if (format) applyFormat(td, format);
+      if (cell?.s) applyFill(td, cell.s, !!format?.color);
       const m = merges.get(key);
       if (m) { td.rowSpan = m.rs; td.colSpan = m.cs; }
       tr.append(td);
