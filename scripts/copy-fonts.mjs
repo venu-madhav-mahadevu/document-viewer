@@ -32,10 +32,25 @@ for (const [pkg, officeNames] of FONTS) {
       if (!file) continue;
       copyFileSync(join(dir, 'files', file), join(dest, file));
       files++;
+      const bold = variant.startsWith('700');
+      const italic = variant.endsWith('italic');
       for (const office of officeNames) {
+        // "Calibri Light" has no bold face: leave bold to the browser, as Word does.
+        if (bold && /Light/.test(office)) continue;
+        // local() must name the installed face of this exact style, otherwise bold text would
+        // use the regular face (local('Calibri') on a bold face shows regular Calibri).
+        const suffix = `${bold ? ' Bold' : ''}${italic ? ' Italic' : ''}`;
+        const psStyle = bold || italic ? `-${bold ? 'Bold' : ''}${italic ? 'Italic' : ''}` : '';
+        const compact = office.replace(/ /g, '');
+        const locals = [...new Set([
+          `${office}${suffix}`,           // full name, e.g. "Calibri Bold"
+          `${compact}${psStyle}`,          // PostScript name, e.g. "Calibri-Bold"
+          `${compact}${psStyle}MT`,        // e.g. "Arial-BoldMT"
+          `${compact}PS${psStyle}MT`,      // e.g. "TimesNewRomanPS-BoldMT"
+        ])];
         const face = block
           .replace(/font-family:\s*'[^']+'/, `font-family: '${office}'`)
-          .replace(/src:[^;]+;/, `src: local('${office}'), url(./${file}) format('woff2');`);
+          .replace(/src:[^;]+;/, `src: ${locals.map((n) => `local('${n}')`).join(', ')}, url(./${file}) format('woff2');`);
         css += `${face}\n`;
       }
     }

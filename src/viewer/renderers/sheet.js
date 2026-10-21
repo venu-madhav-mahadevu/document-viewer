@@ -12,6 +12,17 @@ function applyFill(td, style, hasFontColor) {
   if (!hasFontColor && 0.299 * r + 0.587 * g + 0.114 * b < 140) td.style.color = '#ffffff';
 }
 
+const FORMAT_COLORS = { red: '#ff0000', blue: '#0000ff', green: '#00a000', yellow: '#c0a000', magenta: '#ff00ff', cyan: '#00a0a0', white: '#ffffff', black: '#000000' };
+
+/** Color from the number format, e.g. "0.0%;[Red]-0.0%" shows negatives in red. */
+function formatColor(cell) {
+  if (!cell?.z || typeof cell.v !== 'number' || !/\[[a-z]/i.test(cell.z)) return null;
+  const sections = cell.z.match(/(?:"[^"]*"|\\.|[^;])+/g) || []; // split on ; outside quotes
+  const section = cell.v < 0 && sections[1] ? sections[1] : cell.v === 0 && sections[2] ? sections[2] : sections[0];
+  const name = /\[(red|blue|green|yellow|magenta|cyan|white|black)\]/i.exec(section || '')?.[1];
+  return name ? FORMAT_COLORS[name.toLowerCase()] : null;
+}
+
 /** Fonts, alignment, wrapping and borders (from xlsx-styles.js). */
 function applyFormat(td, f) {
   const st = td.style;
@@ -129,6 +140,8 @@ function buildTable(ws, download, formats) {
   const tbody = el('tbody');
   for (let r = range.s.r; r <= range.e.r; r++) {
     const tr = el('tr');
+    const rowHeight = ws['!rows']?.[r]?.hpx;
+    if (rowHeight && rowHeight > 24) tr.style.height = `${Math.round(rowHeight)}px`; // taller rows from Excel
     tr.append(el('th', null, String(r + 1)));
     for (let c = range.s.c; c <= range.e.c; c++) {
       const key = `${r}:${c}`;
@@ -139,6 +152,8 @@ function buildTable(ws, download, formats) {
       const format = formats?.[XLSX.utils.encode_cell({ r, c })];
       if (format) applyFormat(td, format);
       if (cell?.s) applyFill(td, cell.s, !!format?.color);
+      const numberColor = formatColor(cell);
+      if (numberColor) td.style.color = numberColor;
       const m = merges.get(key);
       if (m) { td.rowSpan = m.rs; td.colSpan = m.cs; }
       tr.append(td);

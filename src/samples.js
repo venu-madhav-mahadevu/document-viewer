@@ -8,17 +8,19 @@ export const SAMPLE_GROUPS = [
   { title: 'Word', files: [
     ['onboarding-guide.docx', '.docx'],
     ['onboarding-macro.docm', '.docm macro-enabled (macros never run)'],
-    ['onboarding-guide.doc', '.doc Word 97-2003 (simplified preview)'],
+    ['onboarding-guide.doc', '.doc Word 97-2003'],
   ] },
   { title: 'Excel', files: [
     ['regional-sales.xlsx', '.xlsx, merged cells, 2 sheets'],
     ['branches-macro.xlsm', '.xlsm macro-enabled'],
     ['branches-legacy.xls', '.xls Excel 97-2003'],
     ['accounts.csv', '.csv with quoted commas'],
+    ['formatted-report.xlsx', '.xlsx formats and colors: currency, %, dates, fills, fonts, borders (3 sheets)'],
+    ['formatted-report.xls', '.xls Excel 97-2003 copy of the formats and colors file'],
   ] },
   { title: 'PowerPoint', files: [
     ['strategy-deck.pptx', '.pptx'],
-    ['strategy-deck.ppt', '.ppt PowerPoint 97-2003 (simplified preview)'],
+    ['strategy-deck.ppt', '.ppt PowerPoint 97-2003'],
   ] },
   { title: 'Images', files: [
     ['photo.jpg', '.jpg'],
