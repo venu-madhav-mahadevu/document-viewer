@@ -1,0 +1,118 @@
+[
+ [
+  "test-pack/TEST-CHECKLIST.xlsx",
+  "START HERE: all 506 tests, expected results, Pass/Fail column"
+ ],
+ [
+  "test-pack/test-word.docx",
+  "Word: fonts, styles, bullets, tables, pictures, shapes, layout (7 pages)"
+ ],
+ [
+  "test-pack/test-word.docm",
+  "Word macro-enabled: same tests"
+ ],
+ [
+  "test-pack/test-word.doc",
+  "Word 97-2003: same tests"
+ ],
+ [
+  "test-pack/test-excel.xlsx",
+  "Excel: formats, colors, fonts, borders, formulas, rules (6 sheets)"
+ ],
+ [
+  "test-pack/test-excel.xlsm",
+  "Excel macro-enabled: same tests"
+ ],
+ [
+  "test-pack/test-excel.xls",
+  "Excel 97-2003: same tests"
+ ],
+ [
+  "test-pack/test-data.csv",
+  "CSV: quotes, commas, accents, Asian text, numbers, dates"
+ ],
+ [
+  "test-pack/test-slides.pptx",
+  "PowerPoint: text, bullets, shapes, pictures, table, charts (10 slides)"
+ ],
+ [
+  "test-pack/test-slides.ppt",
+  "PowerPoint 97-2003: same tests"
+ ],
+ [
+  "test-pack/test-pdf.pdf",
+  "PDF: fonts, Asian text, drawings, links, forms, page sizes (9 pages)"
+ ],
+ [
+  "test-pack/test-pdf-protected.pdf",
+  "PDF with password test1234"
+ ],
+ [
+  "test-pack/test-image.jpg",
+  "JPG test chart: colors, gray levels, sharpness"
+ ],
+ [
+  "test-pack/test-image.jpeg",
+  "JPEG extension, zoom"
+ ],
+ [
+  "test-pack/test-image-progressive.jpeg",
+  "Progressive JPEG"
+ ],
+ [
+  "test-pack/test-image-rotated-exif.jpg",
+  "Phone photo rotation (EXIF)"
+ ],
+ [
+  "test-pack/test-image-cmyk.jpg",
+  "CMYK JPEG (print / scanner)"
+ ],
+ [
+  "test-pack/test-image-large.jpg",
+  "8000 x 5000 photo"
+ ],
+ [
+  "test-pack/test-scan-multipage.tif",
+  "5-page scan, page bar, thumbnails"
+ ],
+ [
+  "test-pack/test-tiff-16bit.tif",
+  "TIFF, 16-bit grayscale"
+ ],
+ [
+  "test-pack/test-tiff-cmyk.tiff",
+  "TIFF, CMYK color"
+ ],
+ [
+  "test-pack/test-tiff-deflate.tiff",
+  "TIFF, Deflate compression"
+ ],
+ [
+  "test-pack/test-tiff-fax-g3.tif",
+  "TIFF, black & white fax G3"
+ ],
+ [
+  "test-pack/test-tiff-fax-g4.tif",
+  "TIFF, black & white fax G4"
+ ],
+ [
+  "test-pack/test-tiff-grayscale.tiff",
+  "TIFF, grayscale"
+ ],
+ [
+  "test-pack/test-tiff-jpeg.tif",
+  "TIFF, JPEG compression"
+ ],
+ [
+  "test-pack/test-tiff-lzw.tiff",
+  "TIFF, LZW compression"
+ ],
+ [
+  "test-pack/test-tiff-packbits.tiff",
+  "TIFF, PackBits compression"
+ ],
+ [
+  "test-pack/test-tiff-uncompressed.tiff",
+  "TIFF, no compression"
+ ]
+]

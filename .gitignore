@@ -8,3 +8,10 @@ public/demos/coi-serviceworker.js
 .angular/
 out-tsc/
 public/fonts/
+scripts/test-pack/out/
+scripts/test-pack/assets/
+scripts/test-pack/pylibs/
+scripts/test-pack/tests-*.json
+scripts/test-pack/all-tests.json
+scripts/test-pack/__pycache__/
+public/demos/
