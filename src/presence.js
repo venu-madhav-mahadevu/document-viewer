@@ -34,8 +34,9 @@ export function startPresence(container, { env }) {
   bar.hidden = true;
   container.append(bar);
 
-  let setPage = () => {};
-  const api = { setPage: (page) => setPage(page) };
+  let page = 'home'; // 'home' or 'view'; kept until Firebase is connected
+  let setPage = (p) => { page = p; };
+  const api = { setPage: (p) => setPage(p) };
 
   // Load Firebase after the page has finished loading, so the viewer itself stays fast.
   const start = async () => {
@@ -46,7 +47,6 @@ export function startPresence(container, { env }) {
       const id = testerId();
       const tab = Math.random().toString(36).slice(2, 10);
       const me = db.ref(database, `presence/${env}/${id}_${tab}`);
-      let page = 'home';
       let online = 0;
       let todayCount = 0;
       const render = () => {
@@ -67,9 +67,10 @@ export function startPresence(container, { env }) {
       });
       setPage = (p) => { page = p; db.update(me, { page: p }).catch(() => {}); };
 
-      // today's testers: one entry per browser per day
+      // today's testers: one entry per browser per day (written once; the rules refuse rewrites)
       const day = today();
-      db.set(db.ref(database, `visits/${env}/${day}/${id}`), true).catch(() => {});
+      const visit = db.ref(database, `visits/${env}/${day}/${id}`);
+      db.get(visit).then((s) => (s.exists() ? null : db.set(visit, true))).catch(() => {});
 
       db.onValue(db.ref(database, `presence/${env}`), (snap) => { online = snap.size; render(); });
       db.onValue(db.ref(database, `visits/${env}/${day}`), (snap) => { todayCount = snap.size; render(); });
@@ -78,7 +79,9 @@ export function startPresence(container, { env }) {
       bar.remove();
     }
   };
-  if (document.readyState === 'complete') setTimeout(start, 500);
-  else window.addEventListener('load', () => setTimeout(start, 500), { once: true });
+  // Start when the browser is idle after the page is ready (documents keep loading meanwhile).
+  const later = () => (window.requestIdleCallback ? requestIdleCallback(start, { timeout: 2000 }) : setTimeout(start, 300));
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', later, { once: true });
+  else later();
   return api;
 }
