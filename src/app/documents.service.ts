@@ -19,6 +19,8 @@ export const SAMPLE_GROUPS: SampleGroup[] = [
     ['branches-macro.xlsm', '.xlsm macro-enabled'],
     ['branches-legacy.xls', '.xls Excel 97-2003'],
     ['accounts.csv', '.csv with quoted commas'],
+    ['formatted-report.xlsx', '.xlsx formats and colors: currency, %, dates, fills, fonts, borders (3 sheets)'],
+    ['formatted-report.xls', '.xls Excel 97-2003 copy of the formats and colors file'],
   ] },
   { title: 'PowerPoint', files: [
     ['strategy-deck.pptx', '.pptx'],
