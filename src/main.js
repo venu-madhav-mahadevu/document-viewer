@@ -1,6 +1,7 @@
 import './app.css';
 import { createDocViewer, formatBytes, ACCEPT } from './viewer/index.js';
 import { SAMPLE_GROUPS } from './samples.js';
+import { startPresence } from './presence.js';
 
 const list = document.getElementById('file-list');
 const empty = document.getElementById('empty');
@@ -32,7 +33,11 @@ function renderList() {
   }));
 }
 
+// "N online now · M testers today" (Firebase; off when src/firebase-config.js is empty).
+const presence = startPresence(document.getElementById('presence'), { env: 'staging' });
+
 function showViewer() {
+  presence.setPage('view');
   empty.hidden = true;
   viewerEl.hidden = false;
   app.classList.add('viewing'); // phones: hide the top bar so the document gets the full screen
@@ -48,6 +53,7 @@ function show(i) {
 }
 
 function goHome() {
+  presence.setPage('home');
   activeIndex = -1;
   renderList();
   viewerEl.hidden = true;

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- Strict CSP: no third-party origins at all, so document content cannot be exfiltrated. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' blob: data:; worker-src 'self' blob:; connect-src 'self' blob: data: ws://localhost:*; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' blob: data:; worker-src 'self' blob:; connect-src 'self' blob: data: ws://localhost:* https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebasedatabase.app; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'" />
     <meta name="referrer" content="no-referrer" />
     <title>Docs Viewer</title>
   </head>
@@ -12,6 +12,7 @@
     <div class="app">
       <aside class="app-sidebar" aria-label="Open documents">
         <button id="home" type="button" class="brand" title="Home and samples">Docs Viewer</button>
+        <div id="presence" class="presence-slot"></div>
         <label class="open-btn" title="Open a document from your computer (it stays in your browser)">
           <input id="file-input" type="file" multiple hidden />
           Open file
