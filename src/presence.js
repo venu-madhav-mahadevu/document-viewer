@@ -42,6 +42,9 @@ export function startPresence(container, { env }) {
   const start = async () => {
     try {
       const [{ initializeApp }, db] = await Promise.all([import('firebase/app'), import('firebase/database')]);
+      // WebSocket only: Firebase's fallback (long polling) loads scripts from its servers,
+      // which the page's security policy (script-src 'self') blocks on purpose.
+      db.forceWebSockets();
       const app = initializeApp(FIREBASE_CONFIG, 'docs-viewer-presence');
       const database = db.getDatabase(app);
       const id = testerId();
