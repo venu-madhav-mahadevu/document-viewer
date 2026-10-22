@@ -68,7 +68,8 @@ export function startPresence(container, { env }) {
         await db.onDisconnect(me).remove();
         await db.set(me, { t: db.serverTimestamp(), page });
       });
-      setPage = (p) => { page = p; db.update(me, { page: p }).catch(() => {}); };
+      // t is sent too: if the tab's entry isn't written yet, a page-only update would fail the rules
+      setPage = (p) => { page = p; db.update(me, { t: db.serverTimestamp(), page: p }).catch(() => {}); };
 
       // today's testers: one entry per browser per day (written once; the rules refuse rewrites)
       const day = today();

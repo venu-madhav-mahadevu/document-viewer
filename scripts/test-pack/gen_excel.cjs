@@ -26,7 +26,7 @@ function testRow(ws, sheetName, what, expected, fill, status = '') {
 }
 function sheet(wb, name, title) {
   const ws = wb.addWorksheet(name);
-  ws.columns = [{ width: 38 }, { width: 22 }, { width: 22 }, { width: 22 }, { width: 60 }];
+  ws.columns = [{ width: 38 }, { width: 30 }, { width: 22 }, { width: 22 }, { width: 60 }];
   ws.addRow([title]).getCell(1).font = { bold: true, size: 14, color: { argb: 'FF1F4E79' } };
   const h = ws.addRow(['Test (ID · what is tested)', 'Test cell', 'Test cell', 'Test cell', 'Expected result']);
   h.eachCell((c) => { c.font = { bold: true }; c.fill = solid('FFD9E1F2'); c.border = box(thin); });

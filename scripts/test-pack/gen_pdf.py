@@ -71,7 +71,11 @@ c.setFillColor(HexColor('#ED7D31')); c.circle(300, h - 240, 60, fill=1, stroke=0
 c.setStrokeColor(HexColor('#70AD47')); c.setLineWidth(4); c.roundRect(400, h - 300, 160, 120, 20, fill=0, stroke=1)
 p = c.beginPath(); p.moveTo(40, h - 340); p.lineTo(120, h - 460); p.lineTo(200, h - 340); p.close()
 c.setFillColor(HexColor('#FFC000')); c.drawPath(p, fill=1, stroke=0)
-c.linearGradient(260, h - 460, 560, h - 340, (white, NAVY), extend=False)
+# a gradient fills the whole clip area, so clip it to the box first
+c.saveState()
+box = c.beginPath(); box.rect(260, h - 460, 300, 120); c.clipPath(box, stroke=0, fill=0)
+c.linearGradient(260, h - 400, 560, h - 400, (white, NAVY), extend=False)
+c.restoreState()
 c.setFillColor(black); c.setFont('Helvetica', 11); c.drawString(260, h - 475, '^ gradient box: white (left) to dark blue (right)')
 tests_box(w, [('Lines', 'Solid and dashed dark blue lines across the page'), ('Filled shapes', 'Blue rectangle, orange circle, yellow triangle'),
               ('Outline shape', 'Green rounded rectangle outline'), ('Gradient', 'Box fades from white to dark blue')])

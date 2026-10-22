@@ -134,7 +134,7 @@ def main():
     # 16-bit grayscale
     f = 'test-tiff-16bit.tif'
     base = tiff_page(1, 1, 'TIF-07  16-bit grayscale', [R.add('TIF-07', f, 'Whole page', '16-bit grayscale (medical / archive scans)', 'Opens; gray image is readable', '⚠️')], 'L')
-    base.convert('I;16').save(os.path.join(OUT, f))
+    base.convert('I').point(lambda v: v * 257).convert('I;16').save(os.path.join(OUT, f))  # 0-255 -> 0-65535
     R.save()
 
 if __name__ == '__main__':

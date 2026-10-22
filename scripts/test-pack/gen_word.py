@@ -258,10 +258,11 @@ page_title('6. Two columns')
 label('Page 6', 'Two-column layout', 'Text flows in two columns side by side (like a newsletter)', '⚠️')
 for i in range(6):
     doc.add_paragraph(f'Column text paragraph {i + 1}. ' + 'Text continues in two columns. ' * 6)
-new._sectPr.append(parse_xml(f'<w:cols {NS} w:num="2" w:space="720"/>'))
+new._sectPr.find(qn('w:cols')).set(qn('w:num'), '2')  # one <w:cols> per section (Word rejects two)
 
 # ---------------------------------------------------------------- section 3: landscape
 land = doc.add_section(WD_SECTION.NEW_PAGE)
+land._sectPr.find(qn('w:cols')).attrib.pop(qn('w:num'), None)  # back to one column (add_section copies the last one)
 land.orientation = WD_ORIENT.LANDSCAPE
 land.page_width, land.page_height = land.page_height, land.page_width
 page_title('7. Landscape page')
