@@ -48,14 +48,14 @@ async function load(name) {
   return res.json();
 }
 
-Promise.all([load('test-results'), load('fix-plan'), load('two-weeks')])
-  .then(([tests, plan, weeks]) => draw(tests, plan, weeks))
+Promise.all([load('test-results'), load('two-weeks')])
+  .then(([tests, weeks]) => draw(tests, weeks))
   .catch((err) => {
     $('#take').textContent = `The test results could not be loaded (${err.message}).`;
     $('#take').classList.add('error');
   });
 
-function draw(tests, plan, weeks) {
+function draw(tests, weeks) {
   const pass = tests.filter((t) => t.result === 'Pass').length;
   const fail = tests.filter((t) => t.result === 'Fail').length;
   const rate = Math.round((pass / tests.length) * 100);
@@ -81,7 +81,7 @@ function draw(tests, plan, weeks) {
   drawWorks(tests, works);
   drawResults(tests, pass, fail, rate);
   drawMatrix(tests, problems);
-  drawPlan(plan, weeks, rate, pass, tests.length);
+  drawPlan(weeks, rate, pass, tests.length);
 }
 
 // ---------- What works ----------
@@ -211,81 +211,26 @@ function drawMatrix(tests, problems) {
   }));
 }
 
-// ---------- Fix plan ----------
-function drawPlan(plan, weeks, rate, pass, total) {
-  // pass rate after each step = today's passes plus the tests fixed so far, so the plan always adds up
-  const cumulative = (rows, key) => {
-    let fixed = 0;
-    [...rows].sort((a, b) => a[key] - b[key]).forEach((r) => { fixed += r.tests_fixed; r.pass_after = Math.round(((pass + fixed) / total) * 100); });
-  };
-  cumulative(weeks, 'day');
-  cumulative(plan, 'phase');
-  const days = weeks.length;
-  const wkCount = Math.max(...weeks.map((w) => w.week));
-  const lastOf = (n) => weeks.filter((w) => w.week === n).sort((a, b) => b.day - a.day)[0];
-  const fixed = weeks.reduce((t, w) => t + w.tests_fixed, 0);
-  const devMin = plan.reduce((t, p) => t + p.days_min, 0);
-  const devMax = plan.reduce((t, p) => t + p.days_max, 0);
+// ---------- Fix plan (2 weeks) ----------
+function drawPlan(weeks, rate, pass, total) {
+  // pass rate after each day = today's passes plus the tests fixed so far, so the plan always adds up
+  let fixed = 0;
+  const days = [...weeks].sort((a, b) => a.day - b.day);
+  days.forEach((d) => { fixed += d.tests_fixed; d.pass_after = Math.round(((pass + fixed) / total) * 100); });
+  const wkCount = Math.max(...days.map((d) => d.week));
+  const lastOf = (n) => days.filter((d) => d.week === n).pop();
   $('#p-weeks').textContent = `${wkCount} weeks`;
-  $('#p-days').textContent = `${days} working days, review at the end of each week`;
+  $('#p-days').textContent = `${days.length} working days, one area a day`;
   $('#p-wk1').textContent = `${lastOf(1).pass_after}%`;
   $('#p-today').textContent = `from ${rate}% today`;
   $('#p-wk2').textContent = `${lastOf(wkCount).pass_after}%`;
   $('#p-fixed').textContent = `about ${num.format(fixed)} failing tests fixed`;
-  $('#p-dev').textContent = `${Math.ceil(devMin / 5)}–${Math.ceil(devMax / 5)} weeks`;
-  $('#p-devdays').textContent = `${devMin}–${devMax} working days for the same work`;
 
   let wk = null;
-  $('#two-weeks tbody').replaceChildren(...[...weeks].sort((a, b) => a.day - b.day).map((w) => {
-    const tr = el('tr', w.week !== wk ? 'first' : '');
-    wk = w.week;
-    tr.append(el('td', 'n', String(w.day)), el('td', 'n', String(w.week)), el('td', 'feat', w.title), el('td', 'muted', w.work), el('td', 'n', num.format(w.tests_fixed)), rateCell(w.pass_after));
-    return tr;
-  }));
-
-  // developer timeline: phases one after another; dark = shortest, light = longest estimate
-  const phases = [...plan].sort((a, b) => a.phase - b.phase);
-  const spanWeeks = Math.ceil(devMax / 5);
-  const span = spanWeeks * 5;
-  const pct = (d) => `${(d / span) * 100}%`;
-  let start = 0;
-  const rows = phases.map((p) => {
-    const row = el('div', 'g-row');
-    const track = el('div', 'g-track');
-    const grid = el('div', 'g-grid');
-    for (let i = 0; i < spanWeeks; i++) grid.append(el('span'));
-    const max = el('div', 'g-max');
-    max.style.left = pct(start);
-    max.style.width = pct(p.days_max);
-    const min = el('div', 'g-min');
-    min.style.left = pct(start);
-    min.style.width = pct(p.days_min);
-    const lbl = el('div', 'g-lbl', `${p.days_min}–${p.days_max} days · ${p.pass_after}% after`);
-    const end = start + p.days_max;
-    if (end / span < 0.6) lbl.style.left = `calc(${pct(end)} + 6px)`;
-    else lbl.style.right = `calc(${(1 - start / span) * 100}% + 6px)`;
-    track.append(grid, max, min, lbl);
-    row.append(el('div', 'g-name', `${p.phase}. ${p.name}`), track);
-    start = end;
-    return row;
-  });
-  const axis = el('div', 'g-axis');
-  const ticks = el('div', 'ticks');
-  const step = spanWeeks > 8 ? 2 : 1;
-  for (let w = 0; w <= spanWeeks; w += step) {
-    const t = el('span', null, w === 0 ? 'Start' : `Wk ${w}`);
-    t.style.left = `${(w / spanWeeks) * 100}%`;
-    if (w === 0) t.style.transform = 'none';
-    if (w === spanWeeks) t.style.transform = 'translateX(-100%)';
-    ticks.append(t);
-  }
-  axis.append(el('div'), ticks);
-  $('#gantt').replaceChildren(...rows, axis);
-
-  $('#phases tbody').replaceChildren(...phases.map((p) => {
-    const tr = el('tr');
-    tr.append(el('td', 'n', String(p.phase)), el('td', 'feat', p.name), el('td', 'muted', p.covers), el('td', 'n', num.format(p.tests_fixed)),
-      el('td', 'n', String(p.days_min)), el('td', 'n', String(p.days_max)), rateCell(p.pass_after));
+  $('#two-weeks tbody').replaceChildren(...days.map((d) => {
+    const tr = el('tr', d.week !== wk ? 'first' : '');
+    wk = d.week;
+    tr.append(el('td', 'n', String(d.day)), el('td', 'n', String(d.week)), el('td', 'feat', d.title), el('td', 'muted', d.work), el('td', 'n', num.format(d.tests_fixed)), rateCell(d.pass_after));
     return tr;
   }));
 }

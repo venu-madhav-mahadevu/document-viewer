@@ -121,53 +121,35 @@
     <!-- Fix plan -->
     <section class="page" id="plan" role="tabpanel" aria-labelledby="tab-plan" hidden>
       <div class="tiles">
-        <div class="tile ok"><div class="lbl">With Claude</div><div class="num" id="p-weeks">—</div><div class="lbl" id="p-days"></div></div>
+        <div class="tile ok"><div class="lbl">Developer time</div><div class="num" id="p-weeks">—</div><div class="lbl" id="p-days"></div></div>
         <div class="tile"><div class="lbl">Pass rate after week 1</div><div class="num" id="p-wk1">—</div><div class="lbl" id="p-today"></div></div>
         <div class="tile"><div class="lbl">Pass rate after week 2</div><div class="num" id="p-wk2">—</div><div class="lbl" id="p-fixed"></div></div>
-        <div class="tile"><div class="lbl">Developer estimate (without Claude)</div><div class="num" id="p-dev">—</div><div class="lbl" id="p-devdays"></div></div>
       </div>
 
       <div class="card">
-        <h2>2-week plan with Claude</h2>
-        <p class="note">One area a day. Every day: fix on staging, same change on angular, test with the checklist in Chrome, Firefox and Safari, push to Stage and Angular only, update the checklist and this report. You review at the end of each week; PROD changes only when you say so.</p>
+        <h2>2-week plan</h2>
+        <p class="note">One area a day. Each day I fix it on staging, make the same change on angular, test it with the checklist in Chrome, Firefox and Safari, push it to Stage and Angular, and update the checklist and this report. Each week ends with a review on Stage; PROD is updated after the review.</p>
         <div class="scroll short">
           <table class="t mx" id="two-weeks">
             <thead><tr><th class="n">Day</th><th class="n">Week</th><th>Area</th><th>Work</th><th class="n">Tests fixed (about)</th><th>Pass rate after</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
-        <p class="eg"><b>What could slow it down:</b> the old .doc, .xls and .ppt formats (days 8–9) are the hardest; if one doesn't work out, we decide together whether to skip it. Please send 5–10 sample documents (nothing confidential) by day 5, and plan a review of Stage within a day at each checkpoint.</p>
-      </div>
-
-      <div class="card">
-        <h2>Developer estimate (without Claude)</h2>
-        <p class="note">For comparison: the same work done by a developer by hand, phases one after another, in working days. The dark part of each bar is the shortest estimate, the light part how much longer it may take.</p>
-        <div class="gantt" id="gantt"></div>
-      </div>
-
-      <div class="card">
-        <h2>Phases (developer estimate)</h2>
-        <p class="note">What each phase fixes, about how many failing tests it turns into passes, and the expected pass rate when it is done.</p>
-        <div class="scroll short">
-          <table class="t" id="phases">
-            <thead><tr><th class="n">Phase</th><th>Area</th><th>What gets fixed</th><th class="n">Tests fixed (about)</th><th class="n">Min days</th><th class="n">Max days</th><th>Pass rate after</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
+        <p class="eg"><b>What could slow it down:</b> the old .doc, .xls and .ppt formats (days 8–9) are the hardest; if one of them doesn't work out in time, it moves after the 2 weeks. Sample documents from reviewers (nothing confidential) are needed by day 5.</p>
       </div>
 
       <div class="grid2">
         <div class="card">
           <h2>How the fixes are made</h2>
-          <p class="note">Every fix is a change to the viewer's code, never to anyone's documents.</p>
+          <p class="note">Every fix is a change to the viewer's code, never to anyone's documents. For each one:</p>
           <ol class="steps">
-            <li><b>Find the setting in the file.</b> A .docx, .xlsx or .pptx file is a zip of XML files; every color, border, frozen row or shape is a setting there (Microsoft's ECMA-376 format; MS-DOC, MS-XLS and MS-PPT for the old binary files).</li>
-            <li><b>Find where the viewer reads that part</b> of the document and see which setting it ignores.</li>
-            <li><b>Write the code.</b> JavaScript reads the setting and builds the page (HTML for text and tables, SVG for shapes and charts, canvas for PDF pages); CSS styles it (colors, fonts, borders, frozen rows, rotation). About 80–90% of each fix is JavaScript.</li>
-            <li><b>Test it.</b> Render the test pack, compare with Word, Excel or PowerPoint, and re-run every automated test in Chrome, Firefox and Safari so nothing else breaks.</li>
-            <li><b>Release it.</b> Same change on the Angular branch, push to Stage and Angular, update the checklist and this report. PROD changes only when you say so.</li>
+            <li><b>I find the setting in the file.</b> A .docx, .xlsx or .pptx file is a zip of XML files; every color, border, frozen row or shape is a setting there (Microsoft's ECMA-376 format; MS-DOC, MS-XLS and MS-PPT for the old binary files).</li>
+            <li><b>I find where the viewer reads that part</b> of the document and see which setting it ignores.</li>
+            <li><b>I write the code.</b> JavaScript reads the setting and builds the page (HTML for text and tables, SVG for shapes and charts, canvas for PDF pages); CSS styles it (colors, fonts, borders, frozen rows, rotation). About 80–90% of each fix is JavaScript.</li>
+            <li><b>I test it.</b> I render the test pack, compare it with Word, Excel or PowerPoint, and re-run every automated test in Chrome, Firefox and Safari so nothing else breaks.</li>
+            <li><b>I release it.</b> I make the same change on the Angular branch, push to Stage and Angular, and update the checklist and this report. PROD is updated after review.</li>
           </ol>
-          <p class="eg"><b>Example, Excel frozen rows:</b> the sheet's XML says <code>&lt;pane ySplit="2" state="frozen"/&gt;</code>. The fix reads that and keeps the first two rows on top with CSS <code>position: sticky</code>. From then on every Excel file with frozen rows shows them correctly.</p>
+          <p class="eg"><b>Example, Excel frozen rows:</b> the sheet's XML says <code>&lt;pane ySplit="2" state="frozen"/&gt;</code>. My fix reads that and keeps the first two rows on top with CSS <code>position: sticky</code>. From then on every Excel file with frozen rows shows them correctly.</p>
         </div>
         <div class="card">
           <h2>Where in the code</h2>
@@ -196,7 +178,7 @@
           <li><b>Features not fixed yet still show missing</b> in any document that uses them, until their day in the plan is done.</li>
           <li><b>Rare variations can still differ:</b> an unusual shape outside the common 25–30, a font not installed on the reader's device (a look-alike is used), page breaks in long Word pages, corrupted or non-standard files.</li>
           <li><b>Everyday business documents</b> (reports, letters, statements, formatted spreadsheets, normal decks, PDFs, scans) already look right almost every time.</li>
-          <li><b>Best check:</b> 5–10 of your reviewers' real documents (nothing confidential), tested the same way.</li>
+          <li><b>Best check:</b> I will also test 5–10 real documents from reviewers (nothing confidential) the same way.</li>
         </ul>
       </div>
     </section>
