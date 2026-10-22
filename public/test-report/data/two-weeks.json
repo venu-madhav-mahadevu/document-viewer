@@ -35,7 +35,7 @@
   "day": 5,
   "week": 1,
   "title": "Excel extras + full re-test",
-  "work": "Cell notes (red corner, hover text), pictures in sheets, stripe pattern fills, mixed formats in one cell; all 506 tests re-run on both sites; checklist and this page updated. Your review of week 1",
+  "work": "Cell notes (red corner, hover text), pictures in sheets, stripe pattern fills, mixed formats in one cell; all 506 tests re-run on both sites; checklist and this report updated; review of week 1 on Stage",
   "tests_fixed": 10,
   "pass_after": 88
  },
@@ -75,7 +75,7 @@
   "day": 10,
   "week": 2,
   "title": "Real documents + final re-test",
-  "work": "Test 5-10 reviewer files and fix what they show; final re-test of all 506 tests in Chrome, Firefox and Safari; final checklist and page. Your review of week 2, then PROD decision",
+  "work": "Test 5-10 real documents from reviewers and fix what they show; final re-test of all 506 tests in Chrome, Firefox and Safari; final checklist and report; review of week 2, then release to PROD",
   "tests_fixed": 0,
   "pass_after": 95
  }

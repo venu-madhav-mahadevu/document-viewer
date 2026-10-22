@@ -94,20 +94,6 @@ table.t { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-
 .mx td.cell button:focus-visible, .mx td.cell button[aria-pressed="true"] { outline: 2px solid var(--text); }
 .detail { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); font-size: 13px; min-height: 3.4rem; }
 
-.gantt { display: flex; flex-direction: column; gap: 8px; }
-.g-row, .g-axis { display: grid; grid-template-columns: minmax(7rem, 11rem) 1fr; gap: 8px; align-items: center; font-size: 12.5px; }
-.g-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.g-track { position: relative; height: 26px; }
-.g-grid { position: absolute; inset: 0; display: flex; }
-.g-grid span { flex: 1; border-left: 1px solid var(--grid); }
-.g-min, .g-max { position: absolute; top: 4px; height: 18px; border-radius: 4px; }
-.g-min { background: var(--ok); }
-.g-max { background: color-mix(in srgb, var(--ok) 30%, transparent); }
-.g-lbl { position: absolute; top: 0; line-height: 26px; white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums; }
-.g-axis { color: var(--muted); }
-.g-axis .ticks { position: relative; height: 18px; }
-.g-axis .ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
-
 .steps { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 8px; max-width: 80ch; }
 .eg { font-size: 12.5px; color: var(--muted); margin: 12px 0 0; }
 .foot { font-size: 12.5px; color: var(--muted); }
