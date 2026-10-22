@@ -37,6 +37,7 @@ const DEMOS_URL = 'https://venu-madhav-mahadevu.github.io/document-viewer/stagin
         </ul>
         <a class="demos-link" [href]="demosUrl + 'index.html'">Library demos with code</a>
         <a class="demos-link" [href]="demosUrl + 'architecture.html'">Architecture</a>
+        <a class="demos-link" href="test-report/index.html">Test results report</a>
         <p class="privacy">Documents open in your browser; nothing is uploaded, including files you open yourself.</p>
       </aside>
       <main class="main">
