@@ -1,0 +1,82 @@
+[
+ {
+  "day": 1,
+  "week": 1,
+  "title": "Quick fixes",
+  "work": "Word footer page number and header on every page; Excel double underline, superscript, rotated text, accounting $, clickable links, frozen rows; PDF clickable links; PowerPoint superscript, a) numbering, number size, picture border, .ppt strikethrough",
+  "tests_fixed": 30,
+  "pass_after": 79
+ },
+ {
+  "day": 2,
+  "week": 1,
+  "title": "PowerPoint shapes",
+  "work": "Triangle, arrows, star, callout, chevron, pentagon, hexagon (25-30 common shapes); connector arrow heads",
+  "tests_fixed": 10,
+  "pass_after": 81
+ },
+ {
+  "day": 3,
+  "week": 1,
+  "title": "PowerPoint layout",
+  "work": "Slide 1 title size and position, table styles (colored header, banded rows), gradient fills, picture cropping",
+  "tests_fixed": 10,
+  "pass_after": 83
+ },
+ {
+  "day": 4,
+  "week": 1,
+  "title": "Excel conditional formatting",
+  "work": "Color scales, data bars, icon arrows, highlight rules",
+  "tests_fixed": 15,
+  "pass_after": 86
+ },
+ {
+  "day": 5,
+  "week": 1,
+  "title": "Excel extras + full re-test",
+  "work": "Cell notes (red corner, hover text), pictures in sheets, stripe pattern fills, mixed formats in one cell; all 506 tests re-run on both sites; checklist and this page updated. Your review of week 1",
+  "tests_fixed": 10,
+  "pass_after": 88
+ },
+ {
+  "day": 6,
+  "week": 2,
+  "title": "Word and PDF",
+  "work": "Word text boxes, shapes and arrows over pictures, floating pictures with text wrap; PDF bookmarks panel",
+  "tests_fixed": 10,
+  "pass_after": 90
+ },
+ {
+  "day": 7,
+  "week": 2,
+  "title": "Charts",
+  "work": "Column, bar, line and pie charts in Excel and PowerPoint",
+  "tests_fixed": 4,
+  "pass_after": 91
+ },
+ {
+  "day": 8,
+  "week": 2,
+  "title": "Old Word .doc",
+  "work": "Pictures, table header and shading, merged cells, header, two columns, landscape page",
+  "tests_fixed": 10,
+  "pass_after": 93
+ },
+ {
+  "day": 9,
+  "week": 2,
+  "title": "Old Excel .xls and PowerPoint .ppt",
+  "work": ".xls fonts, borders, alignment, text formula results; .ppt gradient and cropping",
+  "tests_fixed": 10,
+  "pass_after": 95
+ },
+ {
+  "day": 10,
+  "week": 2,
+  "title": "Real documents + final re-test",
+  "work": "Test 5-10 reviewer files and fix what they show; final re-test of all 506 tests in Chrome, Firefox and Safari; final checklist and page. Your review of week 2, then PROD decision",
+  "tests_fixed": 0,
+  "pass_after": 95
+ }
+]

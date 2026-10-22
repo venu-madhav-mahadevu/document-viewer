@@ -1,0 +1,56 @@
+[
+ {
+  "phase": 1,
+  "name": "Quick fixes",
+  "covers": "Word footer page number and header on all pages; Excel double underline, superscript, rotated text, accounting $, clickable links, frozen rows; PDF clickable links; PowerPoint superscript, numbering, picture border, .ppt strikethrough",
+  "tests_fixed": 30,
+  "days_min": 4,
+  "days_max": 5,
+  "pass_after": 79
+ },
+ {
+  "phase": 2,
+  "name": "PowerPoint",
+  "covers": "25-30 common shapes (arrows, star, callout, chevron, pentagon, hexagon), slide titles, table styles, gradients, picture cropping",
+  "tests_fixed": 20,
+  "days_min": 5,
+  "days_max": 7,
+  "pass_after": 83
+ },
+ {
+  "phase": 3,
+  "name": "Excel",
+  "covers": "Conditional formatting (color scales, data bars, icon sets, highlight rules), cell notes, pictures in sheets, pattern fills, mixed formats in one cell",
+  "tests_fixed": 25,
+  "days_min": 5,
+  "days_max": 7,
+  "pass_after": 88
+ },
+ {
+  "phase": 4,
+  "name": "Word and PDF",
+  "covers": "Word text boxes, shapes and arrows over pictures, floating pictures with text wrap; PDF bookmarks panel",
+  "tests_fixed": 10,
+  "days_min": 4,
+  "days_max": 5,
+  "pass_after": 90
+ },
+ {
+  "phase": 5,
+  "name": "Charts",
+  "covers": "Column, bar, line and pie charts in Excel and PowerPoint",
+  "tests_fixed": 4,
+  "days_min": 7,
+  "days_max": 10,
+  "pass_after": 91
+ },
+ {
+  "phase": 6,
+  "name": "Old formats",
+  "covers": ".doc pictures, tables, columns, header; .xls fonts, borders, alignment, text formula results; .ppt gradient and cropping",
+  "tests_fixed": 30,
+  "days_min": 10,
+  "days_max": 15,
+  "pass_after": 97
+ }
+]

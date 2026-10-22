@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Docs Viewer Test Results</title>
+  <link rel="stylesheet" href="report.css">
+  <script src="report.js" defer></script>
+</head>
+<body>
+  <div class="wrap">
+    <header class="head" id="top">
+      <a class="back" href="../">← Back to Docs Viewer</a>
+      <h1>Docs Viewer test results</h1>
+      <p class="take" id="take">Loading the test results…</p>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="Report pages">
+      <button class="tab" role="tab" id="tab-works" aria-controls="works" aria-selected="true">What works</button>
+      <button class="tab" role="tab" id="tab-results" aria-controls="results" aria-selected="false">Results</button>
+      <button class="tab" role="tab" id="tab-matrix" aria-controls="matrix" aria-selected="false">Problems matrix</button>
+      <button class="tab" role="tab" id="tab-plan" aria-controls="plan" aria-selected="false">Fix plan</button>
+    </nav>
+
+    <!-- What works -->
+    <section class="page" id="works" role="tabpanel" aria-labelledby="tab-works">
+      <div class="card">
+        <h2>Tests passed by document type</h2>
+        <p class="note">How many tests pass in each family of formats. Images, TIFF scans and CSV pass every test.</p>
+        <div class="fam ok" id="works-fam"></div>
+      </div>
+      <div class="card">
+        <h2>Features that match the original</h2>
+        <p class="note">Each row is a feature that passed in every format it was tested in, so documents using it look like the original. <span id="works-count"></span></p>
+        <div class="tools">
+          <input id="wq" type="search" placeholder="Search features, e.g. bullets, colors, password" aria-label="Search working features">
+          <select id="wfam" aria-label="Document type"><option value="">All types</option></select>
+        </div>
+        <div class="scroll">
+          <table class="t mx" id="works-t">
+            <thead><tr><th>Type</th><th>Feature</th><th>Passes in</th><th class="n">Tests</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section class="page" id="results" role="tabpanel" aria-labelledby="tab-results" hidden>
+      <div class="tiles">
+        <div class="tile"><div class="lbl">Tests run</div><div class="num" id="k-tests">—</div></div>
+        <div class="tile ok"><div class="lbl">Pass</div><div class="num" id="k-pass">—</div></div>
+        <div class="tile bad"><div class="lbl">Fail</div><div class="num" id="k-fail">—</div></div>
+        <div class="tile"><div class="lbl">Pass rate</div><div class="num" id="k-rate">—</div></div>
+      </div>
+      <div class="card">
+        <h2>Pass rate by file</h2>
+        <p class="note">One row per test file, weakest first. The bar is the share of that file's tests that pass.</p>
+        <div class="scroll short">
+          <table class="t" id="by-file">
+            <thead><tr><th>File</th><th>Format</th><th class="n">Tests</th><th class="n">Pass</th><th class="n">Fail</th><th>Pass rate</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2>All tests</h2>
+        <p class="note">Every test from TEST-CHECKLIST.xlsx: what was expected and what the viewer showed. Click a header to sort.</p>
+        <div class="tools">
+          <input id="q" type="search" placeholder="Search tests, e.g. bullets, border, chart" aria-label="Search tests">
+          <select id="fres" aria-label="Result"><option value="">All results</option><option>Pass</option><option>Fail</option></select>
+          <select id="ffmt" aria-label="Format"><option value="">All formats</option></select>
+          <span class="count" id="count"></span>
+        </div>
+        <div class="scroll">
+          <table class="t" id="tests">
+            <thead><tr>
+              <th class="sortable" data-k="id" tabindex="0">Test ID</th>
+              <th class="sortable" data-k="format" tabindex="0">Format</th>
+              <th>Where</th>
+              <th class="sortable" data-k="feature" tabindex="0">What is tested</th>
+              <th>Expected</th>
+              <th class="sortable" data-k="result" tabindex="0">Result</th>
+              <th>What the viewer showed</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Problems matrix -->
+    <section class="page" id="matrix" role="tabpanel" aria-labelledby="tab-matrix" hidden>
+      <div class="card">
+        <h2>Open problems by document type</h2>
+        <p class="note">Number of failing tests in each family of formats.</p>
+        <div class="fam bad" id="fam"></div>
+      </div>
+      <div class="card">
+        <h2>Problems matrix</h2>
+        <p class="note">Each row is a feature that fails in at least one format; each column a format. Click a cell to see what the viewer showed. A blank cell means that format has no such test.</p>
+        <div class="legend"><span class="chip Fail">Fail</span> not shown or shown wrong <span class="chip Pass">Pass</span> matches the original</div>
+        <div class="scroll gap">
+          <table class="t mx" id="mx">
+            <thead><tr>
+              <th>Type</th><th>Feature</th>
+              <th class="c">.docx</th><th class="c">.docm</th><th class="c">.doc</th>
+              <th class="c">.xlsx</th><th class="c">.xlsm</th><th class="c">.xls</th>
+              <th class="c">.pptx</th><th class="c">.ppt</th><th class="c">.pdf</th>
+              <th class="n">Fails</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="detail" id="mx-detail" aria-live="polite">Click a Fail cell to see what the viewer showed for that format.</div>
+      </div>
+    </section>
+
+    <!-- Fix plan -->
+    <section class="page" id="plan" role="tabpanel" aria-labelledby="tab-plan" hidden>
+      <div class="tiles">
+        <div class="tile ok"><div class="lbl">With Claude</div><div class="num" id="p-weeks">—</div><div class="lbl" id="p-days"></div></div>
+        <div class="tile"><div class="lbl">Pass rate after week 1</div><div class="num" id="p-wk1">—</div><div class="lbl" id="p-today"></div></div>
+        <div class="tile"><div class="lbl">Pass rate after week 2</div><div class="num" id="p-wk2">—</div><div class="lbl" id="p-fixed"></div></div>
+        <div class="tile"><div class="lbl">Developer estimate (without Claude)</div><div class="num" id="p-dev">—</div><div class="lbl" id="p-devdays"></div></div>
+      </div>
+
+      <div class="card">
+        <h2>2-week plan with Claude</h2>
+        <p class="note">One area a day. Every day: fix on staging, same change on angular, test with the checklist in Chrome, Firefox and Safari, push to Stage and Angular only, update the checklist and this report. You review at the end of each week; PROD changes only when you say so.</p>
+        <div class="scroll short">
+          <table class="t mx" id="two-weeks">
+            <thead><tr><th class="n">Day</th><th class="n">Week</th><th>Area</th><th>Work</th><th class="n">Tests fixed (about)</th><th>Pass rate after</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="eg"><b>What could slow it down:</b> the old .doc, .xls and .ppt formats (days 8–9) are the hardest; if one doesn't work out, we decide together whether to skip it. Please send 5–10 sample documents (nothing confidential) by day 5, and plan a review of Stage within a day at each checkpoint.</p>
+      </div>
+
+      <div class="card">
+        <h2>Developer estimate (without Claude)</h2>
+        <p class="note">For comparison: the same work done by a developer by hand, phases one after another, in working days. The dark part of each bar is the shortest estimate, the light part how much longer it may take.</p>
+        <div class="gantt" id="gantt"></div>
+      </div>
+
+      <div class="card">
+        <h2>Phases (developer estimate)</h2>
+        <p class="note">What each phase fixes, about how many failing tests it turns into passes, and the expected pass rate when it is done.</p>
+        <div class="scroll short">
+          <table class="t" id="phases">
+            <thead><tr><th class="n">Phase</th><th>Area</th><th>What gets fixed</th><th class="n">Tests fixed (about)</th><th class="n">Min days</th><th class="n">Max days</th><th>Pass rate after</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h2>How the fixes are made</h2>
+          <p class="note">Every fix is a change to the viewer's code, never to anyone's documents.</p>
+          <ol class="steps">
+            <li><b>Find the setting in the file.</b> A .docx, .xlsx or .pptx file is a zip of XML files; every color, border, frozen row or shape is a setting there (Microsoft's ECMA-376 format; MS-DOC, MS-XLS and MS-PPT for the old binary files).</li>
+            <li><b>Find where the viewer reads that part</b> of the document and see which setting it ignores.</li>
+            <li><b>Write the code.</b> JavaScript reads the setting and builds the page (HTML for text and tables, SVG for shapes and charts, canvas for PDF pages); CSS styles it (colors, fonts, borders, frozen rows, rotation). About 80–90% of each fix is JavaScript.</li>
+            <li><b>Test it.</b> Render the test pack, compare with Word, Excel or PowerPoint, and re-run every automated test in Chrome, Firefox and Safari so nothing else breaks.</li>
+            <li><b>Release it.</b> Same change on the Angular branch, push to Stage and Angular, update the checklist and this report. PROD changes only when you say so.</li>
+          </ol>
+          <p class="eg"><b>Example, Excel frozen rows:</b> the sheet's XML says <code>&lt;pane ySplit="2" state="frozen"/&gt;</code>. The fix reads that and keeps the first two rows on top with CSS <code>position: sticky</code>. From then on every Excel file with frozen rows shows them correctly.</p>
+        </div>
+        <div class="card">
+          <h2>Where in the code</h2>
+          <p class="note">Repository venu-madhav-mahadevu/document-viewer, branches staging and angular.</p>
+          <div class="scroll short">
+            <table class="t">
+              <thead><tr><th>Format</th><th>Code file</th></tr></thead>
+              <tbody>
+                <tr><td>Word .docx, .docm</td><td><code>src/viewer/renderers/docx.js</code></td></tr>
+                <tr><td>Word .doc</td><td><code>legacy.js</code>, <code>doc-format.js</code></td></tr>
+                <tr><td>Excel .xlsx, .xlsm, .xls, .csv</td><td><code>sheet.js</code> (Stage), <code>sheet.ts</code> (Angular), <code>xlsx-styles.js</code></td></tr>
+                <tr><td>PowerPoint .pptx</td><td><code>src/viewer/renderers/pptx.js</code></td></tr>
+                <tr><td>PowerPoint .ppt</td><td><code>legacy.js</code>, <code>ppt-format.js</code></td></tr>
+                <tr><td>PDF</td><td><code>src/viewer/renderers/pdf.js</code></td></tr>
+                <tr><td>Look and layout</td><td><code>src/viewer/viewer.css</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Will the fixes work for every document?</h2>
+        <ul class="steps">
+          <li><b>Yes, for the features we fix.</b> The code is shared, so every file anyone opens gets the fix, not only the test files.</li>
+          <li><b>Features not fixed yet still show missing</b> in any document that uses them, until their day in the plan is done.</li>
+          <li><b>Rare variations can still differ:</b> an unusual shape outside the common 25–30, a font not installed on the reader's device (a look-alike is used), page breaks in long Word pages, corrupted or non-standard files.</li>
+          <li><b>Everyday business documents</b> (reports, letters, statements, formatted spreadsheets, normal decks, PDFs, scans) already look right almost every time.</li>
+          <li><b>Best check:</b> 5–10 of your reviewers' real documents (nothing confidential), tested the same way.</li>
+        </ul>
+      </div>
+    </section>
+
+    <footer class="foot">Data: <a href="../samples/test-pack/TEST-CHECKLIST.xlsx">TEST-CHECKLIST.xlsx</a> (test run 22 Oct 2026, Stage and Angular).</footer>
+  </div>
+</body>
+</html>
