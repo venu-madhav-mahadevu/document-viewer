@@ -83,6 +83,7 @@ table.t { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-
 .chip { display: inline-block; padding: 0 8px; border-radius: 999px; font-weight: 600; line-height: 1.6; font-size: 12px; }
 .chip.Pass { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
 .chip.Fail { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.chip.NA { color: var(--muted); background: color-mix(in srgb, var(--muted) 16%, transparent); }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .chips .chip { font-weight: 400; }
 .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12.5px; color: var(--muted); align-items: center; }
@@ -91,10 +92,12 @@ table.t { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-
 .mx td.cell button { appearance: none; border: 0; font: inherit; font-size: 12px; width: 100%; min-width: 3.2rem; border-radius: 4px; padding: 2px 4px; cursor: pointer; }
 .mx td.cell button.Fail { color: var(--bad); background: color-mix(in srgb, var(--bad) 16%, transparent); font-weight: 600; }
 .mx td.cell button.Pass { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.mx td.cell button.NA { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
 .mx td.cell button:focus-visible, .mx td.cell button[aria-pressed="true"] { outline: 2px solid var(--text); }
 .detail { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); font-size: 13px; min-height: 3.4rem; }
 
 .steps { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 8px; max-width: 80ch; }
 .eg { font-size: 12.5px; color: var(--muted); margin: 12px 0 0; }
+.done { color: var(--ok); font-size: 12px; font-weight: 600; }
 .foot { font-size: 12.5px; color: var(--muted); }
 .error { color: var(--bad); }

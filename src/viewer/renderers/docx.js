@@ -59,6 +59,70 @@ async function contextualStyles(buffer) {
   return new Set([...styles.keys()].filter((id) => on(id)));
 }
 
+// Page-number fields in headers / footers. docx-preview drops simple fields and repeats a
+// complex field's saved value ("1") on every page, so they are swapped for markers before
+// rendering and each page's real number is written in afterwards.
+const FIELD_MARK = { PAGE: '⁣dvPAGE⁣', NUMPAGES: '⁣dvNUMPAGES⁣' };
+const fieldName = (instr) => /^\s*(PAGE|NUMPAGES)\b/i.exec(instr)?.[1].toUpperCase();
+
+async function markPageFields(buffer) {
+  const zip = await JSZip.loadAsync(buffer);
+  const parts = zip.file(/^word\/(header|footer)\d*\.xml$/);
+  let changed = false;
+  for (const part of parts) {
+    let xml = await part.async('string');
+    const before = xml;
+    // <w:fldSimple w:instr="PAGE"><w:r><w:rPr/><w:t>1</w:t></w:r></w:fldSimple>
+    xml = xml.replace(/<w:fldSimple\b[^>]*w:instr="([^"]*)"[^>]*?(?:\/>|>([\s\S]*?)<\/w:fldSimple>)/g, (all, instr, inner = '') => {
+      const name = fieldName(instr);
+      if (!name) return all;
+      const rPr = /<w:rPr>[\s\S]*?<\/w:rPr>/.exec(inner)?.[0] || '';
+      return `<w:r>${rPr}<w:t>${FIELD_MARK[name]}</w:t></w:r>`;
+    });
+    // complex field: begin … <w:instrText> PAGE </w:instrText> … separate … saved value … end
+    xml = xml.replace(/(<w:instrText[^>]*>([^<]*)<\/w:instrText>[\s\S]*?<w:fldChar\b[^>]*w:fldCharType="separate"[^>]*\/>)([\s\S]*?)(?=<w:r\b[^>]*>(?:(?!<\/w:r>)[\s\S])*?<w:fldChar\b[^>]*w:fldCharType="end")/g,
+      (all, head, instr, value) => {
+        const name = fieldName(instr);
+        if (!name) return all;
+        let first = true; // the saved value's first text becomes the marker, the rest is dropped
+        return head + value.replace(/(<w:t\b[^>]*>)[^<]*(<\/w:t>)/g, (t, open, close) => {
+          const out = first ? `${open}${FIELD_MARK[name]}${close}` : `${open}${close}`;
+          first = false;
+          return out;
+        });
+      });
+    if (xml !== before) { zip.file(part.name, xml); changed = true; }
+  }
+  return changed ? zip.generateAsync({ type: 'arraybuffer' }) : buffer;
+}
+
+/**
+ * Word: a section without its own header / footer uses the previous section's.
+ * Then each page's PAGE / NUMPAGES markers become its real numbers.
+ */
+function finishHeadersFooters(pageList) {
+  let header = null;
+  let footer = null;
+  for (const page of pageList) {
+    const own = (tag) => [...page.children].find((c) => c.localName === tag);
+    const h = own('header');
+    const f = own('footer');
+    if (h) header = h; else if (header) page.prepend(header.cloneNode(true));
+    if (f) footer = f; else if (footer) page.append(footer.cloneNode(true));
+  }
+  const total = String(pageList.length);
+  pageList.forEach((page, i) => {
+    for (const part of page.querySelectorAll(':scope > header, :scope > footer')) {
+      const walker = document.createTreeWalker(part, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (node.data.includes('⁣dv')) {
+          node.data = node.data.replaceAll(FIELD_MARK.PAGE, String(i + 1)).replaceAll(FIELD_MARK.NUMPAGES, total);
+        }
+      }
+    }
+  });
+}
+
 const styleClass = (id) => `docx_${id.replace(/[ .]+/g, '-').replace(/[&]+/g, 'and').toLowerCase()}`;
 
 // Layout width in CSS px, unaffected by the viewer's zoom.
@@ -70,7 +134,8 @@ export async function renderDocx({ buffer, mount }) {
   mount.append(styles, body);
 
   const contextual = contextualStyles(buffer).catch(() => new Set());
-  const doc = await renderAsync(buffer, body, styles, {
+  const source = await markPageFields(buffer).catch(() => buffer);
+  const doc = await renderAsync(source, body, styles, {
     className: 'docx',
     inWrapper: true,
     breakPages: true,
@@ -86,6 +151,7 @@ export async function renderDocx({ buffer, mount }) {
   });
   sanitizeLinks(body);
   fixListMarkers(styles);
+  finishHeadersFooters([...body.querySelectorAll('section.docx')]);
   // docx-preview always hyphenates; Word only does when the document turns it on.
   if (doc?.settingsPart?.settings?.autoHyphenation) body.classList.add('dv-hyphenate');
   // Contextual spacing: no space between consecutive paragraphs of the same such style.
