@@ -1,6 +1,7 @@
 import './app.css';
-import { createDocViewer, formatBytes } from './viewer/index.js';
+import { createDocViewer, formatBytes, ACCEPT } from './viewer/index.js';
 import { SAMPLE_GROUPS } from './samples.js';
+import { startPresence } from './presence.js';
 
 const list = document.getElementById('file-list');
 const empty = document.getElementById('empty');
@@ -32,7 +33,13 @@ function renderList() {
   }));
 }
 
+// "N online now · M testers today" (Firebase; off when src/firebase-config.js is empty).
+// The same build runs as PROD (site root) and Stage (/staging/); each keeps its own count.
+const isProd = location.hostname.endsWith('github.io') && !location.pathname.includes('/staging/');
+const presence = startPresence(document.getElementById('presence'), { env: isProd ? 'prod' : 'staging' });
+
 function showViewer() {
+  presence.setPage('view');
   empty.hidden = true;
   viewerEl.hidden = false;
   app.classList.add('viewing'); // phones: hide the top bar so the document gets the full screen
@@ -48,6 +55,7 @@ function show(i) {
 }
 
 function goHome() {
+  presence.setPage('home');
   activeIndex = -1;
   renderList();
   viewerEl.hidden = true;
@@ -73,10 +81,26 @@ function add(newFiles) {
   if (first !== -1) show(first);
 }
 
-// View only: files cannot be opened from the user's computer. Block drops so the
-// browser doesn't open a dropped file on its own either.
+// Your own files: open button and drag and drop. Files are read in the browser only;
+// nothing is uploaded.
+const fileInput = document.getElementById('file-input');
+fileInput.accept = ACCEPT; // only the supported formats
+fileInput.addEventListener('change', () => { add([...fileInput.files]); fileInput.value = ''; });
+document.getElementById('empty-open').addEventListener('click', () => fileInput.click());
+
+const overlay = document.getElementById('drop-overlay');
+let dragDepth = 0;
+const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
+window.addEventListener('dragenter', (e) => { if (hasFiles(e)) { dragDepth++; overlay.hidden = false; } });
+window.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; overlay.hidden = true; } });
 window.addEventListener('dragover', (e) => e.preventDefault());
-window.addEventListener('drop', (e) => e.preventDefault());
+window.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dragDepth = 0;
+  overlay.hidden = true;
+  const dropped = [...(e.dataTransfer?.files || [])];
+  if (dropped.length) add(dropped);
+});
 
 const samplesEl = document.getElementById('samples');
 // Exact sample sizes, recorded at build time (scripts/sample-sizes.mjs).

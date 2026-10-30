@@ -1,0 +1,21 @@
+﻿Test ID,What is tested,Test value,"Expected (what you should see in ""Test value"")"
+CSV-01,Plain text,Hello world,Hello world
+CSV-02,Comma inside quotes,"Smith, John","Smith, John (one cell, the comma is part of the text)"
+CSV-03,Quotes inside quotes,"He said ""hello""","He said ""hello"" (with the quote marks)"
+CSV-04,Line break inside a cell,"First line
+Second line",Two lines inside one cell
+CSV-05,Accented characters (UTF-8),café naïve Zürich São Paulo,café naïve Zürich São Paulo (no garbled characters like Ã©)
+CSV-06,Asian text,日本語 中文 한국어,日本語 中文 한국어
+CSV-07,Emoji,Done ✅ Thanks 🙂,Done ✅ Thanks 🙂
+CSV-08,Leading zeros,00042,"00042 (zeros kept, not 42)"
+CSV-09,Long number (account / card),1234567812345678,"1234567812345678 (all digits, not 1.23E+15)"
+CSV-10,Decimal number,1234.56,1234.56
+CSV-11,Negative number,-75.25,-75.25
+CSV-12,Currency text,"$1,234.50","$1,234.50"
+CSV-13,Percent text,45%,45%
+CSV-14,ISO date,2026-10-21,2026-10-21 (or the same date in another format)
+CSV-15,US date,10/21/2026,10/21/2026
+CSV-16,Empty value,,Empty cell
+CSV-17,Spaces at start and end,   padded   ,padded (with spaces around it)
+CSV-18,Very long text,Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum ,Long text; the cell does not break the table layout
+CSV-19,Formula-looking text (safety),=1+1,=1+1 shown as text (NOT calculated as 2)

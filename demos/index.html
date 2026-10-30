@@ -42,7 +42,7 @@
       </section>
       <a class="compare-banner" href="./compare.html"><strong>Compare all libraries on your 15 formats</strong><span>Runs 11 libraries × 15 formats live in your browser and shows which work, with a preview of each result.</span></a>
       <a class="compare-banner" href="./device.html"><strong>Device check: Android, iPhone, iPad</strong><span>Open on any phone or tablet to see its browser version, the features the viewer needs, and all 15 formats tested on that device.</span></a>
-      <a class="compare-banner" href="./browser-convert.html"><strong>Convert to PDF in the browser (LibreOffice WebAssembly)</strong><span>Old .doc, .ppt and .xls shown as real PDF pages (fonts, bold, colors, layout), converted inside the browser with no server. Side by side with the fast preview, with timings. Heavy: about 250 MB, desktop only.</span></a>
+      <a class="compare-banner" href="./convert/index.html"><strong>Convert to PDF in the browser (LibreOffice WebAssembly)</strong><span>Old .doc, .ppt and .xls shown as real PDF pages (fonts, bold, colors, layout), converted inside the browser with no server. Side by side with the fast preview, with timings. Heavy: about 250 MB, desktop only.</span></a>
       <a class="compare-banner" href="./architecture.html"><strong>Architecture: current and recommended</strong><span>How the viewer works today, the gaps for production use, the recommended hybrid design, and a migration plan.</span></a>
       <div class="cards">
         <a class="card recommended" href="./full-viewer.html">
@@ -118,6 +118,6 @@
         </a>
       </div>
     </div>
-    <script type="module">import './demo.css';</script>
+    <script type="module">import './demo.css'; import './sw-cleanup.js';</script>
   </body>
 </html>

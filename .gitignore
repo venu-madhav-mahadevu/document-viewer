@@ -3,5 +3,12 @@ dist/
 public/pdfjs/
 *.log
 public/samples/sizes.json
-public/demos/lo/
-public/demos/coi-serviceworker.js
+public/demos/convert/
+public/fonts/
+.angular/
+scripts/test-pack/out/
+scripts/test-pack/assets/
+scripts/test-pack/pylibs/
+scripts/test-pack/tests-*.json
+scripts/test-pack/all-tests.json
+scripts/test-pack/__pycache__/

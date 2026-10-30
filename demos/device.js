@@ -1,3 +1,4 @@
+import './sw-cleanup.js';
 // Device check: open this page on a phone or tablet to see whether the viewer
 // works there - browser features it needs, then all 15 formats opened for real.
 import './demo.css';
@@ -38,7 +39,7 @@ async function moduleWorkerWorks() {
 
 const FEATURES = [
   { name: 'Promise.withResolvers', why: 'Required by pdf.js 6 (all PDFs)', required: true, test: () => typeof Promise.withResolvers === 'function' },
-  { name: 'Module Web Workers', why: 'Excel files are read in the background', required: true, test: moduleWorkerWorks },
+  { name: 'Module Web Workers', why: 'Excel files are read in the background (without them, on the page itself)', required: false, test: moduleWorkerWorks },
   { name: 'WebAssembly', why: 'pdf.js image decoders', required: true, test: () => typeof WebAssembly === 'object' },
   { name: 'createImageBitmap', why: 'JPEG-compressed TIFF pages', required: true, test: () => typeof createImageBitmap === 'function' },
   { name: 'structuredClone', why: 'Used by pdf.js', required: true, test: () => typeof structuredClone === 'function' },

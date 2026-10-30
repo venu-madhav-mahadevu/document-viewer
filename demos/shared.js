@@ -1,3 +1,4 @@
+import './sw-cleanup.js';
 // Shared plumbing for the demo pages: file picker, sample loader and a
 // "show the code" panel. The interesting code lives in each demo file between
 // `// #region demo` and `// #endregion`.

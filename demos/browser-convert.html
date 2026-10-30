@@ -3,48 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self' blob: data:; worker-src 'self' blob:; connect-src 'self' blob: data: ws://localhost:* ws://127.0.0.1:*; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'" />
-    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+    <meta http-equiv="refresh" content="1; url=./convert/index.html" />
     <title>Convert to PDF in the browser</title>
-    <!-- Adds COOP/COEP via a service worker on hosts that cannot send headers (GitHub Pages). -->
-    <script src="./coi-serviceworker.js"></script>
   </head>
   <body>
-    <div class="wrap">
-      <a class="back-btn" href="./index.html"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>Back to all demos</a>
-      <div class="crumbs"><a href="./index.html">All library demos</a> · <a href="../index.html">Docs Viewer app</a></div>
-      <h1>Convert to PDF in the browser (LibreOffice WebAssembly)</h1>
-      <p class="meta">.doc .ppt .xls → PDF · License <code>MPL-2.0</code> · The real LibreOffice engine compiled to WebAssembly. The document never leaves the browser; the PDF is shown with pdf.js.</p>
-      <p class="install">Install: <code>npm install @matbee/libreoffice-converter coi-serviceworker</code></p>
-
-      <div class="lo-note" id="note">
-        <strong>Heavy:</strong> the engine is about <strong>250 MB</strong> (downloaded once, then cached by the browser) and takes time to start.
-        Desktop Chrome or Edge recommended. Phones may run out of memory.
-        Used only for the old 97-2003 formats; .docx, .xlsx and .pptx already show well in the normal viewer (and .pptx export in this engine build hung in testing).
-      </div>
-
-      <div class="controls">
-        <button id="start" type="button">Start LibreOffice engine</button>
-        <label class="lo-select">Sample
-          <select id="sample">
-            <option value="onboarding-guide.doc">onboarding-guide.doc (Word 97-2003)</option>
-            <option value="strategy-deck.ppt">strategy-deck.ppt (PowerPoint 97-2003)</option>
-            <option value="branches-legacy.xls">branches-legacy.xls (Excel 97-2003)</option>
-          </select>
-        </label>
-        <label>Open your own file<input id="file" type="file" accept=".doc,.ppt,.xls" /></label>
-        <span id="status" role="status"></span>
-      </div>
-      <div class="lo-progress" id="progress" hidden><div id="bar"></div></div>
-      <dl class="lo-stats" id="stats"></dl>
-
-      <div class="grid">
-        <section class="panel"><h2>Fast preview (current viewer, no conversion)</h2><div class="lo-view" id="fast"></div></section>
-        <section class="panel"><h2>LibreOffice → PDF (shown with pdf.js)</h2><div class="lo-view" id="pdf"><p class="lo-empty">Start the engine to convert.</p></div></section>
-      </div>
-
-      <section class="panel lo-code"><h2>Code</h2><pre><code id="code" class="language-javascript"></code></pre></section>
-    </div>
-    <script type="module" src="./browser-convert.js"></script>
+    <p style="font: 15px system-ui, sans-serif; padding: 24px">This demo moved to <a href="./convert/index.html">demos/convert/</a>.</p>
+    <!-- Removes the old helper service worker that this page used to install for all demos. -->
+    <script type="module" src="./sw-cleanup.js"></script>
   </body>
 </html>

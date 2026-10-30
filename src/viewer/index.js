@@ -37,11 +37,29 @@ const ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2
  * Everything renders in the browser. No document content is sent anywhere.
  *
  * @param {HTMLElement} container
- * @param {{ maxBytes?: number, download?: boolean, print?: boolean, fetchInit?: RequestInit, onBack?: () => void }} [options]
+ * @param {{ maxBytes?: number, download?: boolean, print?: boolean, fetchInit?: RequestInit, onBack?: () => void, badge?: boolean }} [options]
  *   onBack: when given, a Back button appears at the left of the toolbar and calls it.
+ *   badge: show the format label (PDF, Word, Spreadsheet...) next to the file name. Off by default.
  */
+/**
+ * Look-alike fonts for Calibri, Cambria, Arial, Times New Roman and Courier New on devices
+ * that don't have them (public/fonts, made by scripts/copy-fonts.mjs). Loaded once.
+ */
+function loadOfficeFonts() {
+  if (document.getElementById('dv-office-fonts')) return;
+  // Demo pages live in demos/ (or a sub-folder of it); the fonts are at the site root.
+  const demos = location.pathname.indexOf('/demos/');
+  const base = demos >= 0 ? new URL(location.pathname.slice(0, demos + 1), location.origin) : new URL(document.baseURI);
+  const link = document.createElement('link');
+  link.id = 'dv-office-fonts';
+  link.rel = 'stylesheet';
+  link.href = new URL('fonts/office-fonts.css', base).href;
+  document.head.append(link);
+}
+
 export function createDocViewer(container, options = {}) {
-  const { maxBytes = 200 * 1024 * 1024, download = true, print = true, fetchInit, onBack } = options;
+  loadOfficeFonts();
+  const { maxBytes = 200 * 1024 * 1024, download = true, print = true, fetchInit, onBack, badge: showBadge = false } = options;
 
   const iconButton = (name, label, extraClass = '') => {
     const b = el('button', `dv-icon-btn ${extraClass}`.trim());
@@ -69,6 +87,7 @@ export function createDocViewer(container, options = {}) {
   thumbsBtn.setAttribute('aria-pressed', 'false');
   const title = el('div', 'dv-title');
   const badge = el('span', 'dv-badge');
+  badge.hidden = !showBadge; // kept in the DOM (the compare and device pages read it)
   const nameEl = el('span', 'dv-name');
   const sizeEl = el('span', 'dv-size');
   title.append(badge, nameEl, sizeEl);
@@ -228,6 +247,7 @@ export function createDocViewer(container, options = {}) {
   function applyZoom(z) {
     zoom = Math.min(Math.max(z, ZOOM_STEPS[0]), ZOOM_STEPS[ZOOM_STEPS.length - 1]);
     zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+    stage.style.setProperty('--dv-zoom', String(zoom)); // lets hairlines stay 1 screen px when zoomed out
     if (!current) return;
     if (current.controller.setZoom) current.controller.setZoom(zoom);
     // Spreadsheets zoom the grid only, so the sheet tabs stay a usable size.
@@ -272,11 +292,17 @@ export function createDocViewer(container, options = {}) {
   }, { passive: false });
 
   let lastWidth = 0;
+  // Next frame: re-fitting inside the callback would resize the observed box again
+  // ("ResizeObserver loop" error in Safari).
+  let fitFrame = 0;
   new ResizeObserver(() => {
-    const width = scroller.clientWidth;
-    if (width === lastWidth) return;
-    lastWidth = width;
-    if (autoFit) fitWidth();
+    cancelAnimationFrame(fitFrame);
+    fitFrame = requestAnimationFrame(() => {
+      const width = scroller.clientWidth;
+      if (width === lastWidth) return;
+      lastWidth = width;
+      if (autoFit) fitWidth();
+    });
   }).observe(scroller);
 
   // ---------- Search ----------
