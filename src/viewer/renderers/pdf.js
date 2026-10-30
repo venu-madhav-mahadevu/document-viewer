@@ -105,12 +105,50 @@ export async function renderPdf({ buffer, mount, scroller, askPassword }) {
         viewport: vp,
       });
       try {
-        await Promise.all([entry.task.promise, entry.textLayer.render()]);
+        await Promise.all([entry.task.promise, entry.textLayer.render(), addLinks(page, vp, holder)]);
       } catch (err) {
         if (!(err instanceof pdfjsLib.RenderingCancelledException)) console.warn(err);
       }
     })();
     return entry.done;
+  }
+
+  /** Clickable links over the page: web links open in a new tab, internal ones scroll to their page. */
+  async function addLinks(page, vp, holder) {
+    const links = (await page.getAnnotations({ intent: 'display' })).filter((a) => a.subtype === 'Link');
+    if (!links.length) return;
+    const layer = el('div', 'dv-pdf-links');
+    for (const link of links) {
+      // PDF coordinates -> page pixels with the viewport's matrix (handles zoom and rotated pages)
+      const [a0, b0, c0, d0, e0, f0] = vp.transform;
+      const at = (x, y) => [a0 * x + c0 * y + e0, b0 * x + d0 * y + f0];
+      const [x1, y1] = at(link.rect[0], link.rect[1]);
+      const [x2, y2] = at(link.rect[2], link.rect[3]);
+      const a = el('a', 'dv-pdf-link');
+      Object.assign(a.style, {
+        left: `${Math.min(x1, x2)}px`, top: `${Math.min(y1, y2)}px`,
+        width: `${Math.abs(x2 - x1)}px`, height: `${Math.abs(y2 - y1)}px`,
+      });
+      const url = link.url || link.unsafeUrl;
+      if (url && /^(https?:|mailto:)/i.test(url)) {
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.title = url;
+      } else if (link.dest) {
+        a.href = '#';
+        a.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const dest = typeof link.dest === 'string' ? await pdf.getDestination(link.dest) : link.dest;
+          if (!dest) return;
+          const n = typeof dest[0] === 'number' ? dest[0] + 1 : (await pdf.getPageIndex(dest[0])) + 1;
+          pages[n - 1]?.scrollIntoView({ block: 'start' });
+        });
+        a.title = 'Go to this place in the document';
+      } else continue;
+      layer.append(a);
+    }
+    if (holder.isConnected) holder.append(layer);
   }
 
   async function textOf(n) {

@@ -58,7 +58,8 @@ Promise.all([load('test-results'), load('two-weeks')])
 function draw(tests, weeks) {
   const pass = tests.filter((t) => t.result === 'Pass').length;
   const fail = tests.filter((t) => t.result === 'Fail').length;
-  const rate = Math.round((pass / tests.length) * 100);
+  const na = tests.filter((t) => t.result === 'N/A').length; // cannot be checked with the test file
+  const rate = Math.round((pass / (tests.length - na)) * 100);
 
   // features: one row per family + feature
   const features = new Map();
@@ -74,14 +75,14 @@ function draw(tests, weeks) {
   const works = [...features.values()].filter((f) => !f.fails).sort((a, b) => famOrder(a, b) || a.feature.localeCompare(b.feature));
   const problems = [...features.values()].filter((f) => f.fails).sort((a, b) => famOrder(a, b) || b.fails - a.fails || a.feature.localeCompare(b.feature));
 
-  $('#take').textContent = `${num.format(pass)} of ${num.format(tests.length)} tests pass (${rate}%) on Stage and Angular. `
+  $('#take').textContent = `${num.format(pass)} of ${num.format(tests.length - na)} tests pass (${rate}%) on Stage and Angular${na ? ` (${na} more cannot be checked with the test files)` : ''}. `
     + `${num.format(works.length)} features match the original in every format; ${num.format(problems.length)} features still have problems. `
     + 'Images, TIFF scans and CSV pass every test.';
 
   drawWorks(tests, works);
-  drawResults(tests, pass, fail, rate);
+  drawResults(tests, pass, fail, rate, na);
   drawMatrix(tests, problems);
-  drawPlan(weeks, rate, pass, tests.length);
+  drawPlan(weeks, rate, pass, tests.length - na);
 }
 
 // ---------- What works ----------
@@ -122,8 +123,8 @@ function drawWorks(tests, works) {
 }
 
 // ---------- Results ----------
-function drawResults(tests, pass, fail, rate) {
-  $('#k-tests').textContent = num.format(tests.length);
+function drawResults(tests, pass, fail, rate, na) {
+  $('#k-tests').textContent = num.format(tests.length - na);
   $('#k-pass').textContent = num.format(pass);
   $('#k-fail').textContent = num.format(fail);
   $('#k-rate').textContent = `${rate}%`;
@@ -131,6 +132,7 @@ function drawResults(tests, pass, fail, rate) {
   const files = new Map();
   for (const t of tests) {
     const r = files.get(t.file) || { file: t.file, format: t.format, tests: 0, pass: 0, fail: 0 };
+    if (t.result === 'N/A') continue; // not counted: cannot be checked with this file
     r.tests++;
     if (t.result === 'Pass') r.pass++; else if (t.result === 'Fail') r.fail++;
     files.set(t.file, r);
@@ -163,7 +165,7 @@ function drawResults(tests, pass, fail, rate) {
     $('#tests tbody').replaceChildren(...list.map((t) => {
       const tr = el('tr');
       const res = el('td');
-      res.append(el('span', `chip ${t.result}`, t.result));
+      res.append(el('span', `chip ${t.result.replace('/', '')}`, t.result));
       tr.append(el('td', null, t.id), el('td', null, t.format), el('td', null, t.where), el('td', 'feat', t.feature), el('td', 'muted', t.expected), res, el('td', 'muted', t.seen));
       return tr;
     }));
@@ -192,7 +194,7 @@ function drawMatrix(tests, problems) {
       const td = el('td', 'cell');
       const t = p.byFormat[f];
       if (t) {
-        const b = el('button', t.result, t.result);
+        const b = el('button', t.result.replace('/', ''), t.result);
         b.type = 'button';
         b.setAttribute('aria-pressed', 'false');
         b.setAttribute('aria-label', `${p.feature}, .${f.toLowerCase()}: ${t.result}`);
@@ -216,7 +218,8 @@ function drawPlan(weeks, rate, pass, total) {
   // pass rate after each day = today's passes plus the tests fixed so far, so the plan always adds up
   let fixed = 0;
   const days = [...weeks].sort((a, b) => a.day - b.day);
-  days.forEach((d) => { fixed += d.tests_fixed; d.pass_after = Math.round(((pass + fixed) / total) * 100); });
+  // days already done are in today's results; the rest count up from there
+  days.forEach((d) => { if (!d.done) fixed += d.tests_fixed; d.pass_after = Math.round(((pass + fixed) / total) * 100); });
   const wkCount = Math.max(...days.map((d) => d.week));
   const lastOf = (n) => days.filter((d) => d.week === n).pop();
   $('#p-weeks').textContent = `${wkCount} weeks`;
@@ -224,13 +227,15 @@ function drawPlan(weeks, rate, pass, total) {
   $('#p-wk1').textContent = `${lastOf(1).pass_after}%`;
   $('#p-today').textContent = `from ${rate}% today`;
   $('#p-wk2').textContent = `${lastOf(wkCount).pass_after}%`;
-  $('#p-fixed').textContent = `about ${num.format(fixed)} failing tests fixed`;
+  $('#p-fixed').textContent = `about ${num.format(fixed)} more failing tests fixed by then`;
 
   let wk = null;
   $('#two-weeks tbody').replaceChildren(...days.map((d) => {
     const tr = el('tr', d.week !== wk ? 'first' : '');
     wk = d.week;
-    tr.append(el('td', 'n', String(d.day)), el('td', 'n', String(d.week)), el('td', 'feat', d.title), el('td', 'muted', d.work), el('td', 'n', num.format(d.tests_fixed)), rateCell(d.pass_after));
+    const area = el('td', 'feat', d.title);
+    if (d.done) area.append(el('div', 'done', `Done ${d.done}`));
+    tr.append(el('td', 'n', String(d.day)), el('td', 'n', String(d.week)), area, el('td', 'muted', d.work), el('td', 'n', num.format(d.tests_fixed)), rateCell(d.pass_after));
     return tr;
   }));
 }

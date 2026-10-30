@@ -1,7 +1,7 @@
 /*
  * Cell formatting for .xlsx / .xlsm that SheetJS CE does not hand over: which style each
  * cell uses, fonts (bold, italic, underline, strike, color, size, name), alignment,
- * wrapping and borders. Runs in the spreadsheet Web Worker (plain text parsing, no DOM)
+ * rotation, wrapping, borders and frozen panes. Runs in the spreadsheet Web Worker (plain text parsing, no DOM)
  * and only for the rows that are displayed.
  */
 
@@ -82,7 +82,7 @@ export function readCellStyles(wb, maxRows) {
       const font = fonts[xf.fontId] || {};
       if (font.bold) s.b = true;
       if (font.italic) s.i = true;
-      if (font.underline) s.u = true;
+      if (font.underline) s.u = font.underline === 2 || font.underline === 'double' ? 'double' : true;
       if (font.strike) s.strike = true;
       const rgb = font.color?.rgb;
       if (rgb && !/^0{6}$/.test(rgb) && !(font.color.theme === 1)) s.color = `#${rgb.slice(-6)}`;
@@ -93,6 +93,7 @@ export function readCellStyles(wb, maxRows) {
       if (al?.vertical) s.valign = al.vertical;
       if (al?.wrapText) s.wrap = true;
       if (al?.indent) s.indent = Number(al.indent);
+      if (al?.textRotation && Number(al.textRotation)) s.rotate = Number(al.textRotation);
       const border = borders[xf.borderId];
       if (border && Object.keys(border).length) s.border = border;
       if (Object.keys(s).length) out = s;
@@ -112,6 +113,9 @@ export function readCellStyles(wb, maxRows) {
     const xml = fileText(files, path);
     if (!xml) continue;
     const map = {};
+    // Frozen rows / columns ("Freeze panes"), under a key no cell address can have.
+    const pane = /<pane\b[^>]*state="frozen(?:Split)?"[^>]*>/.exec(xml)?.[0];
+    if (pane) map['!freeze'] = { rows: Number(attr(pane, 'ySplit') || 0), cols: Number(attr(pane, 'xSplit') || 0) };
     for (const [cell] of xml.matchAll(/<c\b[^>]*>/g)) {
       const ref = attr(cell, 'r');
       const s = attr(cell, 's');

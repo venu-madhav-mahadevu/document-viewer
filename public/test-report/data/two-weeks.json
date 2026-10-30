@@ -3,9 +3,10 @@
   "day": 1,
   "week": 1,
   "title": "Quick fixes",
-  "work": "Word footer page number and header on every page; Excel double underline, superscript, rotated text, accounting $, clickable links, frozen rows; PDF clickable links; PowerPoint superscript, a) numbering, number size, picture border, .ppt strikethrough",
+  "work": "Word footer page number and header on every page; Excel double underline, superscript, rotated text, accounting $, clickable links, frozen rows; PDF clickable links; PowerPoint superscript, a) numbering, number size, picture border, .ppt strikethrough (also done early: Excel mixed formats in a cell, superscript/subscript)",
   "tests_fixed": 30,
-  "pass_after": 79
+  "pass_after": 79,
+  "done": "30 Oct"
  },
  {
   "day": 2,

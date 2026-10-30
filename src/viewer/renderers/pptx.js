@@ -305,6 +305,7 @@ function renderText(txBody, sp, ctx) {
   const fontScale = Number(attr(child(bodyPr, 'normAutofit'), 'fontScale') || 100000) / 100000;
   const lnReduction = Number(attr(child(bodyPr, 'normAutofit'), 'lnSpcReduction') || 0) / 100000;
   const autoNum = new Map(); // level -> counter, for numbered bullets
+  const autoType = new Map(); // level -> numbering style; a new style starts again at its first number
   // Shapes (not text boxes) take their default text color from the shape style.
   const styleColor = colorFrom(child(sp, 'style', 'fontRef'), ctx.theme);
 
@@ -335,13 +336,15 @@ function renderText(txBody, sp, ctx) {
     let bullet = inh.bullet;
     if (child(pPr, 'buNone')) bullet = null;
     else if (child(pPr, 'buChar')) bullet = attr(child(pPr, 'buChar'), 'char');
-    else if (child(pPr, 'buAutoNum')) bullet = { autoNum: attr(child(pPr, 'buAutoNum'), 'type') };
+    else if (child(pPr, 'buAutoNum')) bullet = { autoNum: attr(child(pPr, 'buAutoNum'), 'type'), startAt: Number(attr(child(pPr, 'buAutoNum'), 'startAt') || 1) };
     const buFont = attr(child(pPr, 'buFont'), 'typeface') || inh.buFont || '';
     const hasText = kids(p).some((r) => (r.localName === 'r' || r.localName === 'fld') && child(r, 't')?.textContent);
     if (bullet && hasText) {
       let text;
       if (typeof bullet === 'object') { // numbered: 1. 2. 3. / a) b) / i. ii.
-        const n = (autoNum.get(lvl) || 0) + 1;
+        const type0 = bullet.autoNum || 'arabicPeriod';
+        if (autoType.get(lvl) !== type0) { autoNum.delete(lvl); autoType.set(lvl, type0); }
+        const n = autoNum.has(lvl) ? autoNum.get(lvl) + 1 : (bullet.startAt || 1);
         autoNum.set(lvl, n);
         for (const k of [...autoNum.keys()]) if (k > lvl) autoNum.delete(k);
         const type = bullet.autoNum || 'arabicPeriod';
@@ -353,6 +356,11 @@ function renderText(txBody, sp, ctx) {
         text = bulletGlyph(bullet, buFont); // Wingdings "§" -> "▪", Symbol "·" -> "•"
       }
       const span = el('span', 'dv-pptx-bullet', text);
+      // A bullet is as big as its paragraph's first text (PowerPoint's default), scaled by buSzPct.
+      const firstRun = kids(p).find((r) => r.localName === 'r' || r.localName === 'fld');
+      const runSz = Number(attr(child(firstRun, 'rPr'), 'sz') || 0) / 100 || inh.sz;
+      const buPct = Number(attr(child(pPr, 'buSzPct'), 'val') || 100000) / 100000;
+      if (runSz) span.style.fontSize = `${runSz * buPct * fontScale * PT_TO_PX}px`;
       if (indent < 0) { span.style.display = 'inline-block'; span.style.minWidth = `${px(-indent)}px`; span.style.textIndent = '0'; }
       else span.append('  ');
       para.append(span);
@@ -373,8 +381,15 @@ function renderText(txBody, sp, ctx) {
       if (bold) span.style.fontWeight = '700';
       if (attr(rPr, 'i') === '1') span.style.fontStyle = 'italic';
       const u = attr(rPr, 'u');
-      if (u && u !== 'none') span.style.textDecoration = 'underline';
-      if (attr(rPr, 'strike') && attr(rPr, 'strike') !== 'noStrike') span.style.textDecoration = 'line-through';
+      const deco = [u && u !== 'none' && 'underline', attr(rPr, 'strike') && attr(rPr, 'strike') !== 'noStrike' && 'line-through'].filter(Boolean);
+      if (deco.length) span.style.textDecoration = deco.join(' ');
+      if (u === 'dbl') span.style.textDecorationStyle = 'double';
+      // Superscript / subscript: baseline is a percent of the font size (30000 = raised 30%).
+      const baseline = Number(attr(rPr, 'baseline') || 0);
+      if (baseline) {
+        span.style.verticalAlign = `${baseline / 1000}%`;
+        span.style.fontSize = `${sz * fontScale * PT_TO_PX * 0.67}px`;
+      }
       const color = colorFrom(child(rPr, 'solidFill'), ctx.theme) ||
         (placeholderOf(sp) ? inh.color : styleColor || inh.color) || `#${ctx.theme.dk1}`;
       span.style.color = color;
@@ -441,10 +456,23 @@ async function renderPicture(pic, ctx, map) {
       left: `${(-l / (1 - l - r)) * 100}%`, top: `${(-t / (1 - t - b)) * 100}%`,
     });
     wrap.append(node);
+    pictureBorder(pic, ctx, wrap);
     return wrap;
   }
   place(node, box, map);
+  pictureBorder(pic, ctx, node);
   return node;
+}
+
+/** A picture's outline (Format Picture > Line): drawn on the picture's edge like PowerPoint. */
+function pictureBorder(pic, ctx, node) {
+  const ln = child(pic, 'spPr', 'ln');
+  if (!ln || child(ln, 'noFill')) return;
+  const color = colorFrom(child(ln, 'solidFill'), ctx.theme) || colorFrom(child(pic, 'style', 'lnRef'), ctx.theme);
+  if (!color) return;
+  const w = Math.max(1, px(attr(ln, 'w') || 9525));
+  node.style.outline = `${w}px solid ${color}`;
+  node.style.outlineOffset = `${-w / 2}px`; // the line is centered on the picture's edge
 }
 
 function placeholderBox(box, map, label) {

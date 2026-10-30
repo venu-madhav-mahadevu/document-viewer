@@ -34,7 +34,9 @@ function renderList() {
 }
 
 // "N online now · M testers today" (Firebase; off when src/firebase-config.js is empty).
-const presence = startPresence(document.getElementById('presence'), { env: 'staging' });
+// The same build runs as PROD (site root) and Stage (/staging/); each keeps its own count.
+const isProd = location.hostname.endsWith('github.io') && !location.pathname.includes('/staging/');
+const presence = startPresence(document.getElementById('presence'), { env: isProd ? 'prod' : 'staging' });
 
 function showViewer() {
   presence.setPage('view');

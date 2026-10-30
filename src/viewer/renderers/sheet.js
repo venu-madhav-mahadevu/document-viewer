@@ -31,6 +31,7 @@ function applyFormat(td, f) {
   if (f.i) st.fontStyle = 'italic';
   const deco = [f.u && 'underline', f.strike && 'line-through'].filter(Boolean);
   if (deco.length) st.textDecoration = deco.join(' ');
+  if (f.u === 'double') st.textDecorationStyle = 'double';
   if (f.color) st.color = f.color;
   if (f.size) st.fontSize = `${f.size}em`;
   if (f.font) st.fontFamily = `"${f.font.replace(/"/g, '')}", "Segoe UI", Arial, sans-serif`;
@@ -39,6 +40,97 @@ function applyFormat(td, f) {
   if (f.wrap) { st.whiteSpace = 'pre-wrap'; st.overflowWrap = 'anywhere'; }
   if (f.indent) st.paddingLeft = `${f.indent * 9 + 4}px`;
   for (const [side, value] of Object.entries(f.border || {})) st[`border${side[0].toUpperCase()}${side.slice(1)}`] = value;
+}
+const unxml = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+
+/**
+ * Text with mixed formats in one cell (Excel "rich text": red word, bold word, x², H₂O).
+ * Built from the cell's runs with textContent, so the text can never become HTML.
+ */
+function richText(xml) {
+  const frag = document.createDocumentFragment();
+  for (const [, run] of xml.matchAll(/<r>([\s\S]*?)<\/r>/g)) {
+    const text = unxml([...run.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map((m) => m[1]).join(''));
+    const pr = /<rPr>([\s\S]*?)<\/rPr>/.exec(run)?.[1] || '';
+    const has = (tag) => new RegExp(`<${tag}(?:\\s+val="(?:1|true)")?\\s*/>`).test(pr);
+    const valign = /<vertAlign val="(superscript|subscript)"/.exec(pr)?.[1];
+    const node = el(valign === 'superscript' ? 'sup' : valign === 'subscript' ? 'sub' : 'span', null, text);
+    if (has('b')) node.style.fontWeight = '700';
+    if (has('i')) node.style.fontStyle = 'italic';
+    const u = /<u(?:\s+val="(\w+)")?\s*\/>/.exec(pr);
+    const deco = [u && 'underline', has('strike') && 'line-through'].filter(Boolean);
+    if (deco.length) node.style.textDecoration = deco.join(' ');
+    if (u?.[1] === 'double') node.style.textDecorationStyle = 'double';
+    const rgb = /<color\b[^>]*\brgb="([0-9A-Fa-f]{6,8})"/.exec(pr)?.[1];
+    if (rgb) node.style.color = `#${rgb.slice(-6)}`;
+    frag.append(node);
+  }
+  return frag;
+}
+
+/** Sheet named by an in-workbook link ("#'Formulas'!A1", or a .xls "file.xlsx#Formulas!A1"). */
+function linkedSheet(link, names) {
+  const raw = unxml(link.location || (link.Target || '').split('#')[1] || '').replace(/^#/, '');
+  const m = /^(?:'((?:[^']|'')+)'|([^!]+))!/.exec(raw);
+  const sheet = m ? (m[1] ? m[1].replace(/''/g, "'") : m[2]) : raw;
+  return names.includes(sheet) ? sheet : null;
+}
+
+/** A cell's content: rich text, a link, rotated text, or the accounting layout ($ at the left edge). */
+function fillCell(td, cell, text, format, names, goTo) {
+  let content = cell?.t === 's' && cell.r && /<r>/.test(cell.r) ? richText(cell.r) : null;
+  // Accounting formats ("_($* #,##0.00_)") put the currency symbol at the left edge of the cell.
+  const z = cell?.z ? cell.z.replace(/"[^"]*"/g, '') : '';
+  const acct = typeof cell?.v === 'number' && /\*[ -]/.test(z) ? /^(\s*\(?\s*)([$€£¥₹])\s*(.*?)\s*$/.exec(text) : null;
+  if (acct) {
+    content = document.createDocumentFragment();
+    content.append(el('span', 'dv-acct-sym', acct[2]), el('span', null, `${acct[1].trim()}${acct[3]}`));
+    td.classList.add('dv-acct');
+  }
+  if (cell?.l) {
+    const sheet = linkedSheet(cell.l, names);
+    const url = (cell.l.Target || '').trim();
+    if (sheet || /^(https?:|mailto:)/i.test(url)) {
+      const a = el('a', 'dv-link');
+      if (content) a.append(content); else a.textContent = text;
+      if (sheet) {
+        a.href = '#';
+        a.title = `Go to sheet ${sheet}`;
+        a.addEventListener('click', (e) => { e.preventDefault(); goTo(sheet); });
+      } else {
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.title = url;
+      }
+      content = a;
+    }
+  }
+  if (format?.rotate) {
+    // Excel: 1-90 = degrees up (counter-clockwise), 91-180 = degrees down, 255 = stacked letters.
+    const box = el('span', 'dv-rot');
+    if (content) box.append(content); else box.textContent = text;
+    if (format.rotate === 255) box.classList.add('dv-rot-stack');
+    else box.style.transform = `rotate(${format.rotate <= 90 ? -format.rotate : format.rotate - 90}deg)`;
+    // centered in the (taller) row so the turned text stays inside its cell
+    if (!format.valign) td.style.verticalAlign = 'middle';
+    if (!format.align) td.style.textAlign = 'center';
+    td.style.overflow = 'visible';
+    content = box;
+  }
+  if (content) { td.textContent = ''; td.append(content); }
+  // Cell note / comment: red corner mark, text on hover.
+  const note = cell?.c?.map((c) => c.t).filter(Boolean).join('\n');
+  if (note) { td.classList.add('dv-has-note'); td.title = note; }
+}
+
+/** Keep frozen rows (Freeze panes) on top while scrolling: each row sits below the ones above it. */
+function freezeRows(table) {
+  let top = table.tHead?.offsetHeight || 0;
+  for (const tr of table.querySelectorAll('tbody tr.dv-frozen')) {
+    for (const cell of tr.children) { cell.style.position = 'sticky'; cell.style.top = `${top}px`; cell.style.zIndex = cell.tagName === 'TH' ? '3' : '1'; }
+    top += tr.offsetHeight;
+  }
 }
 const MAX_COLS = 256;
 const DEFAULT_COL_WIDTH = 100; // px, matches .dv-grid col in viewer.css
@@ -109,7 +201,9 @@ export async function renderSheet({ buffer, name, mount, onContentChange, downlo
 
   function show(sheetName) {
     buttons.forEach((b) => b.setAttribute('aria-selected', String(b.textContent === sheetName)));
-    grid.replaceChildren(buildTable(wb.Sheets[sheetName], download, wb.CellStyles?.[sheetName], isCsv));
+    grid.replaceChildren(buildTable(wb.Sheets[sheetName], download, wb.CellStyles?.[sheetName], isCsv, visible, show));
+    const table = grid.querySelector('table.dv-grid');
+    if (table) freezeRows(table);
     grid.scrollTo(0, 0);
     onContentChange?.();
   }
@@ -128,7 +222,7 @@ function columnWidth(info) {
   return px ? Math.min(Math.max(px, 20), 800) : DEFAULT_COL_WIDTH;
 }
 
-function buildTable(ws, download, formats, isCsv) {
+function buildTable(ws, download, formats, isCsv, names = [], goTo = () => {}) {
   const frag = document.createDocumentFragment();
   if (!ws || !ws['!ref']) {
     frag.append(el('p', 'dv-note', 'This sheet is empty.'));
@@ -157,6 +251,10 @@ function buildTable(ws, download, formats, isCsv) {
       for (let c = m.s.c; c <= m.e.c; c++) if (r !== m.s.r || c !== m.s.c) covered.add(`${r}:${c}`);
   }
 
+  // Freeze panes: the first rows / columns stay in view while scrolling.
+  const freeze = formats?.['!freeze'] || {};
+  const leftOf = new Map(); // frozen column -> its left edge (px)
+
   const table = el('table', 'dv-grid');
   const colgroup = el('colgroup');
   colgroup.append(el('col', 'dv-rowhead-col'));
@@ -176,9 +274,11 @@ function buildTable(ws, download, formats, isCsv) {
     const col = el('col');
     const width = isCsv && !ws['!cols']?.[c] ? fitWidth(c) : columnWidth(ws['!cols']?.[c]);
     col.style.width = `${width}px`;
+    const th = el('th', null, XLSX.utils.encode_col(c));
+    if (c < (freeze.cols || 0)) { leftOf.set(c, tableWidth); th.classList.add('dv-frozen-col'); th.style.left = `${tableWidth}px`; }
     tableWidth += width;
     colgroup.append(col);
-    head.append(el('th', null, XLSX.utils.encode_col(c)));
+    head.append(th);
   }
   // A fixed table width makes the browser keep the column widths (long text no longer widens a column).
   table.style.width = `${tableWidth}px`;
@@ -195,6 +295,7 @@ function buildTable(ws, download, formats, isCsv) {
   for (let r = range.s.r; r <= range.e.r; r++) {
     if (ws['!rows']?.[r]?.hidden) continue;
     const tr = el('tr');
+    if (r < (freeze.rows || 0)) tr.classList.add('dv-frozen', ...(r === freeze.rows - 1 ? ['dv-frozen-last'] : []));
     const rowHeight = ws['!rows']?.[r]?.hpx;
     if (rowHeight && rowHeight > 24) tr.style.height = `${Math.round(rowHeight)}px`; // taller rows from Excel
     tr.append(el('th', null, String(r + 1)));
@@ -216,6 +317,8 @@ function buildTable(ws, download, formats, isCsv) {
       // Like Excel, left-aligned text runs on into empty cells to its right instead of being cut off.
       else if (text && cell?.t === 's' && !m && !format?.wrap && !format?.align && cols[i + 1] != null && isEmpty(r, cols[i + 1])) td.classList.add('dv-spill');
       if (text.length > 30) td.title = text; // full text on hover when it is cut off
+      fillCell(td, cell, text, format, names, goTo);
+      if (leftOf.has(c)) { td.classList.add('dv-frozen-col'); td.style.left = `${leftOf.get(c)}px`; }
       tr.append(td);
     });
     tbody.append(tr);
