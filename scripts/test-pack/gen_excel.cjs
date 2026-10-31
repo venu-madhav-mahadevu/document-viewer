@@ -140,13 +140,14 @@ function sheet(wb, name, title) {
   const S5 = 'Conditional formatting';
   const cf = (what, expected, rule, values, status = '❌') => {
     const r = testRow(ws, S5, what, expected, (row) => values.forEach((v, i) => { row.getCell(2 + i).value = v; }), status);
-    ws.addConditionalFormatting({ ref: `B${r.number}:D${r.number}`, rules: [rule] });
+    ws.addConditionalFormatting({ ref: `B${r.number}:D${r.number}`, rules: [typeof rule === 'function' ? rule(r.number) : rule] });
   };
   cf('Color scale (red - yellow - green)', 'B is red (low), C yellow (middle), D green (high)', { type: 'colorScale', cfvo: [{ type: 'min' }, { type: 'percentile', value: 50 }, { type: 'max' }], color: [{ argb: 'FFF8696B' }, { argb: 'FFFFEB84' }, { argb: 'FF63BE7B' }] }, [10, 50, 90]);
   cf('Data bars', 'Blue bars inside the cells, longest in D', { type: 'dataBar', cfvo: [{ type: 'min' }, { type: 'max' }], color: { argb: 'FF638EC6' } }, [20, 50, 100]);
   cf('Icon set (arrows)', 'Red down arrow in B, yellow side arrow in C, green up arrow in D', { type: 'iconSet', iconSet: '3Arrows', cfvo: [{ type: 'percent', value: 0 }, { type: 'percent', value: 33 }, { type: 'percent', value: 67 }] }, [10, 50, 90]);
   cf('Highlight values greater than 50', 'Only D (90) has a light red background with dark red text', { type: 'cellIs', operator: 'greaterThan', formulae: [50], style: { fill: solid('FFFFC7CE'), font: { color: { argb: 'FF9C0006' } } } }, [10, 50, 90]);
-  cf('Highlight duplicate values', 'B and C (both "Apple") are highlighted', { type: 'duplicateValues', style: { fill: solid('FFFFEB9C') } }, ['Apple', 'Apple', 'Pear']);
+  // ExcelJS cannot write the duplicateValues rule type, so the same rule is written as a formula
+  cf('Highlight duplicate values', 'B and C (both "Apple") are highlighted', (n) => ({ type: 'expression', formulae: [`COUNTIF($B$${n}:$D$${n},B${n})>1`], style: { fill: solid('FFFFEB9C') } }), ['Apple', 'Apple', 'Pear']);
 
   // ---------------- 6. Notes, links, picture, filter, frozen rows
   ws = sheet(wb, 'Notes & links', `${FILE} — notes, links, picture, filter, frozen rows`);
