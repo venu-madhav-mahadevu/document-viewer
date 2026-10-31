@@ -394,5 +394,11 @@
 /* Word documents hyphenate only when the document asks for it (docx-preview always does). */
 .dv-docx .docx { hyphens: manual; }
 .dv-docx.dv-hyphenate .docx { hyphens: auto; }
+/* Word floating objects (shapes, text boxes, wrapped pictures) */
+.dv-docx-float { position: relative; box-sizing: border-box; text-indent: 0; line-height: normal; }
+.dv-docx-geom { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.dv-docx-float-text { position: absolute; inset: 0; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden; }
+.dv-docx-float-text p { margin: 0; }
+.dv-docx-float-pic { display: block; width: 100%; height: 100%; }
 
 .dv-fit { flex: none; }
