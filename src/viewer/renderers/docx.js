@@ -3,6 +3,7 @@ import JSZip from 'jszip';
 import { el, sanitizeLinks } from '../sanitize.js';
 import { clonePagesForPrint, PAGE_WIDTH } from '../print.js';
 import { bulletGlyph } from '../bullets.js';
+import { extractAnchors, placeAnchors, readThemeColors } from './docx-anchors.js';
 
 // Bullets in Word are characters from the Windows "Symbol" / "Wingdings" fonts
 // (private-use codes such as U+F0B7) followed by a tab. Phones have neither font,
@@ -65,8 +66,42 @@ async function contextualStyles(buffer) {
 const FIELD_MARK = { PAGE: '⁣dvPAGE⁣', NUMPAGES: '⁣dvNUMPAGES⁣' };
 const fieldName = (instr) => /^\s*(PAGE|NUMPAGES)\b/i.exec(instr)?.[1].toUpperCase();
 
-async function markPageFields(buffer) {
+/**
+ * Prepares the file for docx-preview: page-number fields become markers, floating objects
+ * (shapes, text boxes, wrapped pictures) are taken out to be drawn after rendering.
+ */
+async function prepareDocx(buffer) {
   const zip = await JSZip.loadAsync(buffer);
+  const pageFields = await markPageFields(zip);
+  const anchors = await extractAnchors(zip).catch(() => null);
+  const source = pageFields || anchors ? await zip.generateAsync({ type: 'arraybuffer' }) : buffer;
+  return { source, anchors, zip };
+}
+
+/** Floating objects need the theme colors and the document's pictures (as blob URLs). */
+async function anchorContext(zip, urls) {
+  const theme = await readThemeColors(zip);
+  const relsXml = await zip.file('word/_rels/document.xml.rels')?.async('string') || '';
+  const targets = Object.fromEntries([...relsXml.matchAll(/<Relationship\b[^>]*>/g)].map(([t]) => [
+    /Id="([^"]*)"/.exec(t)?.[1], /Target="([^"]*)"/.exec(t)?.[1]]));
+  const types = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', svg: 'image/svg+xml', webp: 'image/webp' };
+  return {
+    theme,
+    async image(rid) {
+      const target = targets[rid];
+      if (!target) return null;
+      const path = target.startsWith('/') ? target.slice(1) : `word/${target}`.replace(/word\/\.\.\//, '');
+      const file = zip.file(path);
+      const type = types[path.split('.').pop().toLowerCase()];
+      if (!file || !type) return null;
+      const url = URL.createObjectURL(new Blob([await file.async('arraybuffer')], { type }));
+      urls.push(url);
+      return url;
+    },
+  };
+}
+
+async function markPageFields(zip) {
   const parts = zip.file(/^word\/(header|footer)\d*\.xml$/);
   let changed = false;
   for (const part of parts) {
@@ -93,7 +128,7 @@ async function markPageFields(buffer) {
       });
     if (xml !== before) { zip.file(part.name, xml); changed = true; }
   }
-  return changed ? zip.generateAsync({ type: 'arraybuffer' }) : buffer;
+  return changed;
 }
 
 /**
@@ -134,7 +169,9 @@ export async function renderDocx({ buffer, mount }) {
   mount.append(styles, body);
 
   const contextual = contextualStyles(buffer).catch(() => new Set());
-  const source = await markPageFields(buffer).catch(() => buffer);
+  const prepared = await prepareDocx(buffer).catch(() => ({ source: buffer, anchors: null, zip: null }));
+  const source = prepared.source;
+  const urls = [];
   const doc = await renderAsync(source, body, styles, {
     className: 'docx',
     inWrapper: true,
@@ -152,6 +189,11 @@ export async function renderDocx({ buffer, mount }) {
   sanitizeLinks(body);
   fixListMarkers(styles);
   finishHeadersFooters([...body.querySelectorAll('section.docx')]);
+  if (prepared.anchors) {
+    try {
+      await placeAnchors([...body.querySelectorAll('section.docx')], prepared.anchors, await anchorContext(prepared.zip, urls));
+    } catch (err) { console.warn('Floating objects could not be drawn', err); }
+  }
   // docx-preview always hyphenates; Word only does when the document turns it on.
   if (doc?.settingsPart?.settings?.autoHyphenation) body.classList.add('dv-hyphenate');
   // Contextual spacing: no space between consecutive paragraphs of the same such style.
@@ -183,6 +225,6 @@ export async function renderDocx({ buffer, mount }) {
     pageWidth: widthOf,
     naturalWidth: () => Math.max(...pages().map(widthOf), 1),
     printNodes: () => ({ nodes: clonePagesForPrint(pages(), PAGE_WIDTH, widthOf, 'docx-wrapper') }),
-    destroy() {},
+    destroy() { urls.forEach((u) => URL.revokeObjectURL(u)); },
   };
 }

@@ -50,7 +50,8 @@
   "title": "Word and PDF",
   "work": "Word text boxes, shapes and arrows over pictures, floating pictures with text wrap; PDF bookmarks panel (PDF bookmarks done 31 Oct)",
   "tests_fixed": 10,
-  "pass_after": 90
+  "pass_after": 90,
+  "done": "31 Oct"
  },
  {
   "day": 7,
