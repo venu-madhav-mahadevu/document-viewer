@@ -32,7 +32,8 @@
   "title": "Excel conditional formatting",
   "work": "Color scales, data bars, icon arrows, highlight rules",
   "tests_fixed": 15,
-  "pass_after": 86
+  "pass_after": 86,
+  "done": "31 Oct"
  },
  {
   "day": 5,
@@ -40,7 +41,8 @@
   "title": "Excel extras + full re-test",
   "work": "Cell notes (red corner, hover text), pictures in sheets, stripe pattern fills, mixed formats in one cell; all 506 tests re-run on both sites; checklist and this report updated; review of week 1 on Stage",
   "tests_fixed": 10,
-  "pass_after": 88
+  "pass_after": 88,
+  "done": "31 Oct"
  },
  {
   "day": 6,
