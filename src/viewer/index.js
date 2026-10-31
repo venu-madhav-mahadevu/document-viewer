@@ -235,6 +235,28 @@ export function createDocViewer(container, options = {}) {
     });
     // Open by default on wide screens, like Drive's preview.
     showThumbs(root.clientWidth >= 900 && els.length > 1);
+    addBookmarks(c);
+  }
+
+  /** The document's bookmarks (PDF outline) above the thumbnails; a click goes to the page. */
+  async function addBookmarks(c) {
+    const items = c.outline ? await c.outline().catch(() => []) : [];
+    if (!items.length || current.controller !== c) return;
+    const box = el('div', 'dv-outline');
+    box.setAttribute('role', 'navigation');
+    box.setAttribute('aria-label', 'Bookmarks');
+    box.append(el('div', 'dv-outline-title', 'Bookmarks'));
+    for (const item of items) {
+      const b = el('button', 'dv-outline-item', item.title);
+      b.type = 'button';
+      b.style.paddingLeft = `${8 + item.level * 12}px`;
+      if (item.page) {
+        b.title = `${item.title} (page ${item.page})`;
+        b.addEventListener('click', () => { goToPage(item.page); if (root.clientWidth < 700) showThumbs(false); });
+      } else b.disabled = true;
+      box.append(b);
+    }
+    thumbsPanel.prepend(box);
   }
 
   function showThumbs(on) {

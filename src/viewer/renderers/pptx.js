@@ -4,6 +4,7 @@ import { shrinkToFit } from '../fit.js';
 import { el, sanitizeLinks } from '../sanitize.js';
 import { clonePagesForPrint, PAGE_WIDTH, PAGE_WIDTH_LANDSCAPE } from '../print.js';
 import { PRESET_SHAPES, svgEl } from './shapes.js';
+import { readChart, drawChart } from './charts.js';
 
 /*
  * Lightweight, dependency-free PPTX renderer (JSZip + DOMParser only).
@@ -154,6 +155,14 @@ async function loadTheme(pkg, masterPath) {
 }
 
 // ---------- Placeholder inheritance ----------
+/** Speaker notes under a slide: a collapsed "Speaker notes" section, text only. */
+export function speakerNotes(text, width, index) {
+  const box = el('details', 'dv-notes');
+  box.style.width = `${width}px`;
+  box.append(el('summary', null, `Speaker notes · slide ${index}`), el('div', 'dv-notes-text', text));
+  return box;
+}
+
 function placeholderOf(sp) {
   const ph = child(sp, 'nvSpPr', 'nvPr', 'ph') || child(sp, 'nvPicPr', 'nvPr', 'ph') || child(sp, 'nvGraphicFramePr', 'nvPr', 'ph');
   if (!ph) return null;
@@ -582,11 +591,39 @@ function renderConnector(cxn, ctx, map) {
   return svg;
 }
 
-function renderGraphicFrame(gf, ctx, map) {
+/** Theme accent colors for chart series / slices: accent1-6, then darker and lighter rounds. */
+function chartAccent(theme) {
+  return (i) => {
+    const base = hexToRgb(theme[`accent${(i % 6) + 1}`] || '4472C4');
+    const round = Math.floor(i / 6);
+    const k = round === 0 ? 1 : round % 2 ? 0.6 : 1.4;
+    return `rgb(${base.map((v) => Math.round(k <= 1 ? v * k : v + (255 - v) * (k - 1))).join(',')})`;
+  };
+}
+
+async function renderGraphicFrame(gf, ctx, map) {
   const box = readXfrm(child(gf, 'xfrm'));
   if (!box) return null;
   const data = child(gf, 'graphic', 'graphicData');
   const tbl = child(data, 'tbl');
+  const chartRef = child(data, 'chart');
+  if (chartRef) {
+    // Charts: drawn from the values cached in the chart part
+    try {
+      const rel = ctx.rels.get(rid(chartRef, 'id'));
+      const doc = rel && await ctx.pkg.xml(rel.target);
+      const model = doc && readChart(doc, chartAccent(ctx.theme), (fill) => colorFrom(fill, ctx.theme));
+      if (model) {
+        const p = map(box);
+        const wrap = el('div', 'dv-pptx-chart');
+        place(wrap, box, map);
+        wrap.append(drawChart(model, Math.max(40, px(p.cx)), Math.max(40, px(p.cy)), PT_TO_PX));
+        return wrap;
+      }
+    } catch (err) {
+      console.warn('Chart could not be drawn', err);
+    }
+  }
   if (!tbl) {
     const uri = attr(data, 'uri') || '';
     const label = uri.includes('chart') ? 'Chart' : uri.includes('diagram') ? 'SmartArt diagram' : 'Embedded object';
@@ -669,7 +706,7 @@ async function renderTree(tree, ctx, map, out) {
       case 'sp': rendered = await renderShape(node, ctx, map); break;
       case 'pic': rendered = await renderPicture(node, ctx, map); break;
       case 'cxnSp': rendered = renderConnector(node, ctx, map); break;
-      case 'graphicFrame': rendered = renderGraphicFrame(node, ctx, map); break;
+      case 'graphicFrame': rendered = await renderGraphicFrame(node, ctx, map); break;
       case 'grpSp': {
         const x = child(node, 'grpSpPr', 'xfrm');
         const off = readXfrm(x);
@@ -795,6 +832,14 @@ export async function renderPptx({ buffer, mount }) {
     slide.append(el('div', 'dv-pptx-num', String(index)));
     root.append(slide);
     shrinkToFit(slide);
+    // Speaker notes (the notes page's body text), under the slide like PowerPoint's notes pane.
+    const notesPath = [...rels.values()].find((r) => r.type === 'notesSlide')?.target;
+    const notesDoc = notesPath && await pkg.xml(notesPath).catch(() => null);
+    const all = (node, name) => [...node.getElementsByTagName('*')].filter((n) => n.localName === name);
+    const notesBody = notesDoc && all(notesDoc, 'sp').find((sp) => placeholderOf(sp)?.type === 'body');
+    const notesText = notesBody && all(notesBody, 'p')
+      .map((p) => all(p, 't').map((t) => t.textContent).join('')).join('\n').trim();
+    if (notesText) root.append(speakerNotes(notesText, W, index));
   }
   sanitizeLinks(root);
 

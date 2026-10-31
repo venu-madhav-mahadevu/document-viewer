@@ -285,8 +285,22 @@ export function readPresentation(doc, pictureBlobs) {
     for (const fbse of children(doc, bstore, R.FBSE)) blips.push(pictureBlobs.get(u32(doc, fbse.body + 28)) || null);
   }
 
-  // Slide lists: inst 0 = slides, 1 = masters. Each entry: persist ref + its outline texts.
-  const lists = { 0: [], 1: [] };
+  // Embedded objects (charts…): exObjId -> the object's stored bytes (ExOleObjStg, zlib-compressed when inst = 1).
+  const embedded = new Map();
+  const exList = child(doc, docRec, 0x0409);
+  const walkEx = (start, end) => {
+    for (const r of records(doc, start, end)) {
+      if (r.type === 0x0fc3 && r.end - r.body >= 20) { // ExOleObjAtom
+        const off = persist.get(u32(doc, r.body + 16));
+        const stg = off !== undefined ? recordAt(off) : null;
+        if (stg?.type === 0x1011) embedded.set(u32(doc, r.body + 8), { bytes: doc.subarray(stg.body, stg.end), compressed: stg.inst === 1 });
+      } else if (r.container) walkEx(r.body, r.end);
+    }
+  };
+  if (exList) walkEx(exList.body, exList.end);
+
+  // Slide lists: inst 0 = slides, 1 = masters, 2 = notes pages. Each entry: persist ref + its outline texts.
+  const lists = { 0: [], 1: [], 2: [] };
   for (const list of children(doc, docRec, R.SLIDE_LIST)) {
     const out = lists[list.inst] ?? [];
     let entry = null;
@@ -348,6 +362,8 @@ export function readPresentation(doc, pictureBlobs) {
       let rect = tf({ x: a.l, y: a.t, w: a.r - a.l, h: a.bt - a.t });
 
       const cd = child(doc, sp, R.CLIENT_DATA);
+      const exRef = cd && child(doc, cd, 0x0bc1); // ExObjRefAtom: this shape shows an embedded object
+      const ole = exRef ? embedded.get(u32(doc, exRef.body)) : null;
       const ph = cd && child(doc, cd, R.PLACEHOLDER);
       const placeholder = ph ? doc[ph.body + 4] : 0;
       if (ctx.master && placeholder) return null; // master placeholders are templates ("Click to edit…")
@@ -371,6 +387,7 @@ export function readPresentation(doc, pictureBlobs) {
         lineWidth: (opt[0x1cb] ?? 9525) / EMU_PER_MU,
         adjust: opt[0x147],
         spt, // shape type (MSOSPT): triangle, arrows, star, callout…
+        ole, // embedded object (a chart) drawn from its data
       };
       // Gradient fill (fillType 4-7 = shades): from the fill color to the back color, at fillAngle.
       if (filled && opt[0x180] >= 4 && opt[0x180] <= 7) {
@@ -497,7 +514,20 @@ export function readPresentation(doc, pictureBlobs) {
       if ((slideFlags & 0x4) || !background) background = m.background ?? background;
       if (slideFlags & 0x1) masterShapes = m.shapes;
     }
-    slides.push({ background: background || scheme[0], shapes: [...masterShapes, ...own.shapes] });
+    // Speaker notes: the notes page (by the slide's notesIdRef) and its notes-body text (type 2).
+    let notes = '';
+    const notesId = sa ? u32(doc, sa.body + 16) : 0;
+    const notesEntry = notesId && lists[2].find((n) => n.slideId === notesId);
+    const notesOff = notesEntry && persist.get(notesEntry.persist);
+    const notesRec = notesOff !== undefined && notesOff !== null && notesOff !== 0 ? recordAt(notesOff) : null;
+    if (notesRec?.type === R.NOTES) {
+      try {
+        const drawn = readDrawing(notesRec, { scheme, styles, texts: notesEntry.texts });
+        notes = drawn.shapes.filter((sh) => sh.text?.type === 2)
+          .map((sh) => sh.text.paragraphs.map((p) => p.runs.map((r) => r.text).join('')).join('\n')).join('\n').trim();
+      } catch { notes = ''; }
+    }
+    slides.push({ background: background || scheme[0], shapes: [...masterShapes, ...own.shapes], notes });
   }
   if (!slides.length) throw new Error('No slides found');
   return { size, slides };

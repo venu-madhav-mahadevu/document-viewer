@@ -4,6 +4,8 @@ import { clonePagesForPrint, PAGE_WIDTH, PAGE_WIDTH_LANDSCAPE } from '../print.j
 import { readWordDocument, readPageSetup, paragraphStyle, charStyle } from './doc-format.js';
 import { readPresentation } from './ppt-format.js';
 import { PRESET_SHAPES, MSOSPT_PRESET, svgEl } from './shapes.js';
+import { speakerNotes } from './pptx.js';
+import { drawChart, readOdfChart } from './charts.js';
 import { bulletCode } from '../bullets.js';
 import { shrinkToFit } from '../fit.js';
 
@@ -444,6 +446,56 @@ function autoNumberText(scheme, n) {
 }
 
 /** One slide drawn like PowerPoint: positioned shapes, pictures and formatted text. */
+const OFFICE_ACCENTS = ['#4f81bd', '#c0504d', '#9bbb59', '#8064a2', '#4bacc6', '#f79646'];
+
+/** Inflate a zlib stream (embedded objects in .ppt files are stored compressed). */
+async function inflate(bytes) {
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+/**
+ * An embedded chart in a .ppt slide, drawn from its own data: a LibreOffice chart (ODF package)
+ * or a Microsoft Graph chart (its datasheet). Leaves the box as it is when the object is something else.
+ */
+async function drawEmbeddedChart(box, ole, w, h) {
+  const raw = ole.compressed ? await inflate(ole.bytes.subarray(4)) : ole.bytes;
+  const store = CFB.read(raw, { type: 'array' });
+  const accent = (i) => OFFICE_ACCENTS[i % OFFICE_ACCENTS.length];
+  let model = null;
+  const pkg = CFB.find(store, 'package_stream');
+  if (pkg) {
+    const { default: JSZip } = await import('jszip');
+    const zip = await JSZip.loadAsync(pkg.content);
+    const content = await zip.file('content.xml')?.async('string');
+    if (content) model = readOdfChart(content, accent);
+  }
+  if (!model) {
+    // Microsoft Graph: the datasheet's first row names the series, its first column the categories
+    const book = CFB.find(store, 'Workbook') || CFB.find(store, 'Book');
+    if (book) {
+      const XLSX = await import('xlsx');
+      const wb = XLSX.read(book.content, { type: 'array' });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, blankrows: false });
+      if (rows.length > 1) {
+        const names = rows[0].slice(1);
+        const cats = rows.slice(1).map((r) => String(r[0] ?? ''));
+        model = {
+          accent, title: '', legend: 'r', fontPt: 12, gridlines: true, valueAxisDeleted: false,
+          groups: [{
+            type: 'bar', horizontal: false, grouping: 'clustered', varyColors: false, hole: 0, labels: null,
+            series: names.map((n, i) => ({
+              name: String(n ?? `Series ${i + 1}`), cats, color: accent(i), pointColors: {}, labels: null,
+              values: rows.slice(1).map((r) => (typeof r[i + 1] === 'number' ? r[i + 1] : null)),
+            })),
+          }],
+        };
+      }
+    }
+  }
+  if (model) box.append(drawChart(model, w, h));
+}
+
 function renderDrawnSlide(slide, size, W, H, urlFor) {
   const scale = W / size.w;          // px per master unit
   const ptPx = scale * 8;            // px per point (576 master units per inch, 72 pt per inch)
@@ -512,6 +564,14 @@ function renderDrawnSlide(slide, size, W, H, urlFor) {
       if (sh.line) box.style.border = `${Math.max(sh.lineWidth * scale, 1).toFixed(2)}px solid ${sh.line}`;
       if (sh.kind === 'ellipse') box.style.borderRadius = '50%';
       if (sh.kind === 'roundRect') box.style.borderRadius = px(Math.min(sh.w, sh.h) * ((sh.adjust ?? 3600) / 21600));
+    }
+    if (sh.ole) {
+      // embedded chart: drawn from its data once decoded (its preview picture is replaced)
+      box.classList.add('dv-ppt-chart');
+      const cw = Math.max(sh.w * scale, 40); const chh = Math.max(sh.h * scale, 40);
+      drawEmbeddedChart(box, sh.ole, cw, chh)
+        .then(() => { if (box.querySelector('.dv-chart')) box.querySelector('.dv-ppt-picture')?.remove(); })
+        .catch((err) => console.warn('Embedded object could not be drawn', err));
     }
     if (sh.picture) {
       const img = el('img', 'dv-ppt-picture');
@@ -621,6 +681,7 @@ export async function renderPpt({ buffer, mount }) {
       card.setAttribute('aria-label', `Slide ${i + 1}`);
       root.append(card);
       shrinkToFit(card);
+      if (slide.notes) root.append(speakerNotes(slide.notes, W, i + 1));
       return card;
     });
     return result(pages, W);
