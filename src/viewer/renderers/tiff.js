@@ -57,6 +57,16 @@ export async function renderTiff({ buffer, mount, scroller }) {
 
   const bytes = new Uint8Array(buffer);
 
+  // Set when the viewer is closed or the page is left: background decoding stops (WebKit
+  // refuses Blob reads from a page that is unloading and reports them as errors).
+  let stopped = false;
+  let closed = false; // destroy() was called
+  const stop = () => { stopped = true; };
+  addEventListener('pagehide', stop);
+  // back / forward cache: the page comes back as it was, so decoding resumes
+  const resume = (e) => { if (e.persisted && !closed) { stopped = false; pump(); } };
+  addEventListener('pageshow', resume);
+
   /**
    * JPEG-compressed TIFF (compression 7): each strip/tile is a JPEG stream. UTIF's
    * bundled JPEG decoder always applies a YCbCr conversion, which turns RGB-tagged
@@ -78,6 +88,7 @@ export async function renderTiff({ buffer, mount, scroller }) {
     canvas.height = H;
     const ctx = canvas.getContext('2d');
     for (let i = 0; i < offsets.length; i++) {
+      if (stopped) throw new Error('Viewer closed');
       const jpeg = buildJpeg(ifd.t347, bytes.subarray(offsets[i], offsets[i] + lengths[i]), rgb);
       const bitmap = await createImageBitmap(new Blob([jpeg], { type: 'image/jpeg' }));
       ctx.drawImage(bitmap, (i % across) * tileW, Math.floor(i / across) * tileH);
@@ -119,7 +130,7 @@ export async function renderTiff({ buffer, mount, scroller }) {
   const pump = () => {
     if (busy) return;
     const n = [...wanted][0];
-    if (n == null) return;
+    if (n == null || stopped) return;
     wanted.delete(n);
     busy = true;
     setTimeout(async () => {
@@ -130,7 +141,7 @@ export async function renderTiff({ buffer, mount, scroller }) {
           if (holder.isConnected && !holder.firstChild) holder.append(canvas);
         }
       } catch (err) {
-        console.warn(`TIFF page ${n} could not be decoded`, err);
+        if (!stopped) console.warn(`TIFF page ${n} could not be decoded`, err);
       } finally {
         busy = false;
         pump();
@@ -178,6 +189,10 @@ export async function renderTiff({ buffer, mount, scroller }) {
       return { nodes, landscape: sizes[0].w > sizes[0].h };
     },
     destroy() {
+      closed = true;
+      stop();
+      removeEventListener('pagehide', stop);
+      removeEventListener('pageshow', resume);
       observer.disconnect();
       wanted.clear();
       pages.forEach((p) => { const c = p.firstChild; if (c) c.width = 0; });

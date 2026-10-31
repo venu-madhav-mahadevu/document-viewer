@@ -97,14 +97,13 @@ const excel = {
   'Macro-enabled workbook (.xlsm)': ['Pass', 'Opens like the .xlsx; no macro runs, no warning.'],
   'Excel 97-2003 workbook (.xls)': ['Pass', 'Opens, 6 sheets.'],
 };
-const XLS_NA = 'This .xls file does not contain it: the test file was saved as .xls by LibreOffice, which left it out (Excel 97-2003 files can only hold it through later extensions). Checked in the records of the file, 31 Oct 2026.';
 const xls = {
-  'Pattern fill (stripes)': ['N/A', 'Plain light-blue fill: the file stores a solid color for this cell. ' + XLS_NA],
-  'Gradient fill': ['N/A', 'Plain blue fill: the file stores a solid color for this cell. ' + XLS_NA],
-  'Color scale (red - yellow - green)': ['N/A', 'No colors: the rule is missing. ' + XLS_NA],
-  'Data bars': ['N/A', 'No bars: the rule is missing. ' + XLS_NA],
-  'Icon set (arrows)': ['N/A', 'No arrows: the rule is missing. ' + XLS_NA],
-  'Filter buttons': ['N/A', 'No filter buttons: the filter range is missing. ' + XLS_NA],
+  'Pattern fill (stripes)': ['Pass', 'Light blue diagonal stripes on white (fixed 31 Oct 2026; the test file had lost the pattern when LibreOffice saved it as .xls, now added back as the standard Excel record).'],
+  'Gradient fill': ['Pass', 'Fades from white (left) to blue (right) (fixed 31 Oct 2026; gradient added back to the test file as the Excel 2007 extension record for .xls, which the viewer now reads).'],
+  'Color scale (red - yellow - green)': ['Pass', 'B red, C yellow, D green (fixed 31 Oct 2026; rule added back to the test file as the Excel 2007 rule record for .xls, which the viewer now reads).'],
+  'Data bars': ['Pass', 'Blue bars, longest in D (fixed 31 Oct 2026; rule added back to the test file, read by the viewer).'],
+  'Icon set (arrows)': ['Pass', 'Red down arrow in B, yellow side arrow in C, green up arrow in D (fixed 31 Oct 2026; rule added back to the test file, read by the viewer).'],
+  'Filter buttons': ['Pass', 'Name / City / Amount header has filter buttons (fixed 31 Oct 2026; the filter range was added back to the test file).'],
   'Formula IF': ['Pass', 'Big (the file has no saved text result; worked out from the formula, as Excel does when it opens the file) (fixed 31 Oct 2026).'],
   'Formula Text join': ['Pass', 'Total: 60 (worked out from the formula) (fixed 31 Oct 2026).'],
   'Formula Cross-sheet reference': ['Pass', 'Hello world (worked out from the formula) (fixed 31 Oct 2026).'],
