@@ -11,18 +11,18 @@ and no Google, Microsoft or other third-party service is involved.
 |---|---|---|---|
 | PDF | `.pdf` (incl. password-protected) | [pdf.js](https://github.com/mozilla/pdf.js) | Apache-2.0 |
 | Word | `.docx` `.docm` | [docx-preview](https://github.com/VolodymyrBaydalka/docxjs) | Apache-2.0 |
-| Word 97-2003 | `.doc` | Text, tables and page breaks read from the binary file with [cfb](https://github.com/SheetJS/js-cfb) (simplified preview) | Apache-2.0 |
+| Word 97-2003 | `.doc` | In-house reader of the binary format (`src/viewer/renderers/doc-format.js`, `doc-drawing.js`, `mtef.js`) on [cfb](https://github.com/SheetJS/js-cfb): formatting, tables, pictures, shapes, text boxes, equations, headers / footers, sections | Apache-2.0 |
 | Excel | `.xlsx` `.xlsm` `.xls` `.csv` | [SheetJS CE](https://sheetjs.com) 0.20.3 | Apache-2.0 |
 | PowerPoint | `.pptx` | In-house renderer (`src/viewer/renderers/pptx.js`) + [JSZip](https://stuk.github.io/jszip/) | MIT |
-| PowerPoint 97-2003 | `.ppt` | Slide titles, text and pictures read with [cfb](https://github.com/SheetJS/js-cfb) (simplified preview) | Apache-2.0 |
+| PowerPoint 97-2003 | `.ppt` | In-house reader of the binary format (`src/viewer/renderers/ppt-format.js`) on [cfb](https://github.com/SheetJS/js-cfb): slides drawn with their shapes, text, pictures, charts and notes | Apache-2.0 |
 | Images | `.jpg` `.jpeg` | Browser | - |
 | TIFF | `.tif` `.tiff` (multi-page scans, CCITT G3/G4, LZW, JPEG, Deflate) | [UTIF.js](https://github.com/photopea/UTIF.js) | MIT |
 | Text | `.txt` | Browser | - |
 
 Any other file type is rejected with a "not supported" message, and the file picker only offers
 these formats. Files without an extension (e.g. streamed from an API) are identified from their
-content. `.doc` and `.ppt` are binary formats with no open-source browser renderer, so they show a
-clearly labelled simplified preview (content without the original fonts and layout).
+content. `.doc` and `.ppt` are binary formats with no open-source browser renderer; they are read
+by the viewer's own code, following Microsoft's published file format specifications.
 
 **Google Docs-style viewing features** (no extra libraries; built on browser APIs):
 
@@ -166,9 +166,9 @@ The container needs a height; the viewer fills it.
 
 ## Known limitations
 
-- **Legacy binary `.doc` / `.ppt`**: no mature open-source browser renderer exists, so they open as a
-  labelled simplified preview (text, tables and slide text; `.ppt` pictures in a gallery) without
-  the original fonts or layout. `.xls` is fully supported.
+- **Legacy binary `.doc` / `.ppt`**: read by the viewer's own code. Text is laid out by the browser,
+  so a `.doc` page can break a line earlier or later than Word; WMF/EMF-only pictures are not shown.
+  `.xls` is fully supported.
 - **PowerPoint**: text, placeholders, pictures, shapes, groups, lines, tables, backgrounds and theme
   colors render. Charts, SmartArt, gradients on shapes, table styles, animations and EMF/WMF images
   are shown as labelled placeholders or simplified.
