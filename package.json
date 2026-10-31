@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Document viewer that runs entirely in the browser: PDF, Word (.docx, .docm, .doc), Excel (.xlsx, .xlsm, .xls, .csv), PowerPoint (.pptx, .ppt), JPEG, TIFF and text. No document leaves the page.",
   "author": "Venu Madhav Mahadevu",
-  "license": "UNLICENSED",
+  "license": "SEE LICENSE IN LICENSE",
   "private": true,
   "type": "module",
   "main": "./dist/docs-viewer.js",
@@ -14,6 +14,7 @@
   },
   "files": [
     "dist",
+    "LICENSE",
     "THIRD-PARTY-NOTICES.md"
   ],
   "sideEffects": [

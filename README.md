@@ -84,5 +84,7 @@ The demo page also runs the built library: `/demo/?dist`.
 
 ## Licenses
 
-The viewer code is by Venu Madhav Mahadevu. It uses open-source libraries and fonts whose
-licenses must travel with it; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+Copyright (c) 2026 Venu Madhav Mahadevu. All rights reserved; see [LICENSE](LICENSE). Use,
+copying or distribution needs written permission. The open-source libraries and fonts it uses
+keep their own licenses, which must travel with any copy; see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
