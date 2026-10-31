@@ -237,6 +237,8 @@
 .dv-pptx-slide { position: relative; overflow: hidden; }
 .dv-pptx-layer { position: absolute; inset: 0; }
 .dv-pptx-shape { box-sizing: border-box; display: flex; }
+.dv-ppt-geom, .dv-pptx-geom { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.dv-pptx-shape > .dv-pptx-text { position: relative; } /* text above the drawn outline */
 .dv-pptx-text { display: flex; flex-direction: column; width: 100%; height: 100%; box-sizing: border-box; overflow: visible; line-height: 1.15; }
 .dv-pptx-text p { margin: 0; overflow-wrap: break-word; }
 .dv-pptx-bullet { display: inline-block; min-width: 0.9em; }

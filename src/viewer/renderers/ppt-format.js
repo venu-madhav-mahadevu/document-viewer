@@ -1,8 +1,8 @@
 /*
  * PowerPoint 97-2003 (.ppt) slide reader, following Microsoft's published
  * [MS-PPT] and [MS-ODRAW] specifications. Reads each slide as a drawing:
- *   - shapes: position, size, rotation, flips, fill, outline, rectangles,
- *     rounded rectangles, ellipses, lines, pictures and groups (tables)
+ *   - shapes: position, size, rotation, flips, fill (solid or gradient), outline, preset
+ *     outlines (arrows, stars, callouts…), lines with arrow heads, cropped pictures and groups
  *   - text: paragraphs (alignment, indents, spacing, bullets) and runs
  *     (bold, italic, underline, size, color, font, super/subscript)
  *   - the slide master: background, decorations and default text styles
@@ -33,6 +33,40 @@ const i32 = (b, p) => b[p] | (b[p + 1] << 8) | (b[p + 2] << 16) | (b[p + 3] << 2
 const hex = (r, g, b) => `#${[r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('')}`;
 
 /** Child records of a container: [{ type, inst, body, end, container }]. */
+/**
+ * Numbered lists ("1.", "a)") live in the PowerPoint 2000 extension: a StyleTextProp9Atom in the
+ * shape's program tags, one entry per paragraph run ([MS-PPT] TextPFException9).
+ * Returns per run: { scheme, start } or null.
+ */
+function readAutoNumbers(b, rec) {
+  const find = (start, end) => {
+    for (const r of records(b, start, end)) {
+      if (r.type === 0x0fac) return r;
+      if (r.container || r.type === 0x138b) { const hit = find(r.body, r.end); if (hit) return hit; }
+    }
+    return null;
+  };
+  const atom = rec && find(rec.body, rec.end);
+  if (!atom) return null;
+  const out = [];
+  let p = atom.body;
+  while (p + 12 <= atom.end) {
+    const pf = u32(b, p); p += 4;
+    let has = false; let scheme = null; let start = 1;
+    if (pf & 0x00800000) p += 2; // bulletBlipRef
+    if (pf & 0x02000000) { has = u16(b, p) !== 0; p += 2; }
+    if (pf & 0x01000000) { scheme = u16(b, p); start = u16(b, p + 2); p += 4; }
+    const cf = u32(b, p); p += 4;
+    if (cf & 0x00100000) p += 4; // pp10runid
+    const si = u32(b, p); p += 4;
+    for (const bit of [0x1, 0x2, 0x4, 0x40]) if (si & bit) p += 2; // spell, lang, altLang, bidi
+    if (si & 0x20) p += 4; // pp10runid
+    if (si & 0x200) { const n = u32(b, p); p += 4 + n * 4; } // smart tags
+    out.push(has || scheme != null ? { scheme: scheme ?? 3, start: start || 1 } : null);
+  }
+  return out;
+}
+
 function records(b, start, end) {
   const out = [];
   let p = start;
@@ -336,7 +370,20 @@ export function readPresentation(doc, pictureBlobs) {
         line: lined ? optColor(opt[0x1c0], ctx.scheme) ?? ctx.scheme[1] : null,
         lineWidth: (opt[0x1cb] ?? 9525) / EMU_PER_MU,
         adjust: opt[0x147],
+        spt, // shape type (MSOSPT): triangle, arrows, star, callout…
       };
+      // Gradient fill (fillType 4-7 = shades): from the fill color to the back color, at fillAngle.
+      if (filled && opt[0x180] >= 4 && opt[0x180] <= 7) {
+        const back = optColor(opt[0x183], ctx.scheme) ?? '#ffffff';
+        const angle = opt[0x18b] !== undefined ? (opt[0x18b] | 0) / 65536 : 0; // 16.16 degrees
+        shape.gradient = { from: shape.fill, to: back, angle };
+      }
+      // Arrow heads at the start / end of lines (0 none, 1 triangle, 2 stealth, 3 diamond, 4 oval, 5 open).
+      const HEADS = ['none', 'triangle', 'stealth', 'diamond', 'oval', 'arrow'];
+      if (opt[0x1d0] || opt[0x1d1]) shape.arrows = { start: HEADS[opt[0x1d0] || 0], end: HEADS[opt[0x1d1] || 0] };
+      // Picture cropping (16.16 fractions of the picture's size).
+      const crop = [0x100, 0x101, 0x102, 0x103].map((k) => ((opt[k] ?? 0) | 0) / 65536);
+      if (crop.some((v) => v)) shape.crop = { t: crop[0], b: crop[1], l: crop[2], r: crop[3] };
       const pib = opt[0x104] ?? (opt[0x180] === 3 ? opt[0x186] : undefined);
       if (pib && blips[pib - 1]) { shape.picture = blips[pib - 1]; shape.fill = null; }
 
@@ -360,7 +407,7 @@ export function readPresentation(doc, pictureBlobs) {
             placeholder: !!placeholder || [0, 1, 5, 6, 7, 8].includes(type),
             type, anchor: opt[0x087] ?? (type === 0 || type === 6 ? 1 : 0), wrap: opt[0x085] !== 2,
             insets: [opt[0x082] ?? 45720, opt[0x083] ?? 91440, opt[0x084] ?? 45720, opt[0x081] ?? 91440].map((v) => v / EMU_PER_MU),
-            paragraphs: buildParagraphs(text, type, style, ctx),
+            paragraphs: buildParagraphs(text, type, style, ctx, cd && readAutoNumbers(doc, cd)),
           };
         }
       }
@@ -398,7 +445,7 @@ export function readPresentation(doc, pictureBlobs) {
     return { shapes, background };
   }
 
-  function buildParagraphs(text, type, styleRec, ctx) {
+  function buildParagraphs(text, type, styleRec, ctx, autoNums) {
     const raw = text.replace(/\r$/, '');
     const runs = styleRec ? readStyleRuns(doc, styleRec, raw.length + 1, ctx.scheme) : { pf: [], cf: [] };
     const at = (list, i) => { let n = 0; for (const r of list) { n += r.count; if (i < n) return r; } return list.at(-1); };
@@ -418,8 +465,9 @@ export function readPresentation(doc, pictureBlobs) {
         else segs.push({ run: cr, text: ptext[k], cf });
       }
       const firstCf = segs[0]?.cf || { ...master.cf, ...(at(runs.cf, i)?.props || {}) };
+      const autoNum = autoNums?.[runs.pf.indexOf(pr)] ?? null;
       paragraphs.push({
-        level, pf, empty: !ptext.length, emptyCf: firstCf,
+        level, pf, empty: !ptext.length, emptyCf: firstCf, autoNum,
         runs: segs.map(({ text: t, cf }) => ({ text: t, ...cf, fontName: fonts[cf.font] })),
         bulletFontName: fonts[pf.bulletFont],
       });

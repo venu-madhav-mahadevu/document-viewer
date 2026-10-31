@@ -59,8 +59,10 @@ def set_autonum(p, kind):
 s = prs.slides.add_slide(TITLE)
 s.shapes.title.text = f'{FILE} — PowerPoint test deck'
 s.placeholders[1].text = 'Each slide lists its tests on the right: ID, what is tested, expected result'
-for sh in (s.shapes.title, s.placeholders[1]):
-    sh.width = Inches(8.6); sh.left = Inches(0.4)
+# all four values: setting only left/width makes python-pptx save top = height = 0
+s.shapes.title.left, s.shapes.title.top, s.shapes.title.width, s.shapes.title.height = Inches(0.4), Inches(2.0), Inches(8.6), Inches(1.6)
+sub = s.placeholders[1]
+sub.left, sub.top, sub.width, sub.height = Inches(0.4), Inches(3.8), Inches(8.6), Inches(1.2)
 first = [('Title and subtitle', 'Large title text, smaller gray subtitle below it')]
 if PREFIX == 'PPT':
     first.insert(0, ('PowerPoint 97-2003 file (.ppt)', 'Opens normally with all slides'))
@@ -94,7 +96,7 @@ panel(s, 2, [('Bold, italic, underline, strikethrough', 'Lines 1-4 look like the
 
 # ---------------- 3. Bullets
 s = prs.slides.add_slide(BODY)
-s.shapes.title.text = '3. Bullets'; s.shapes.title.left = Inches(0.4); s.shapes.title.width = Inches(8.6)
+s.shapes.title.text = '3. Bullets'; s.shapes.title.left, s.shapes.title.top, s.shapes.title.width, s.shapes.title.height = Inches(0.4), Inches(0.3), Inches(8.6), Inches(1.0)
 body = s.placeholders[1]; body.left, body.top, body.width, body.height = Inches(0.4), Inches(1.4), Inches(8.6), Inches(5.8)
 tf = body.text_frame
 items = [(0, 'Round bullet • (Arial)', '•', 'Arial'), (0, 'Square bullet (Wingdings §)', '§', 'Wingdings'), (0, 'Box bullet (Wingdings q)', 'q', 'Wingdings'),
@@ -113,7 +115,7 @@ panel(s, 3, [('Round bullet', 'Round •'), ('Wingdings §', 'Small square ▪ �
 
 # ---------------- 4. Shrink text on overflow
 s = prs.slides.add_slide(BODY)
-s.shapes.title.text = '4. Shrink text on overflow'; s.shapes.title.left = Inches(0.4); s.shapes.title.width = Inches(8.6)
+s.shapes.title.text = '4. Shrink text on overflow'; s.shapes.title.left, s.shapes.title.top, s.shapes.title.width, s.shapes.title.height = Inches(0.4), Inches(0.3), Inches(8.6), Inches(1.0)
 body = s.placeholders[1]; body.left, body.top, body.width, body.height = Inches(0.4), Inches(1.4), Inches(8.6), Inches(4.2)
 tf = body.text_frame
 for i in range(14):
