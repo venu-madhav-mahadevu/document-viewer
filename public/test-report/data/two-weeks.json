@@ -76,7 +76,8 @@
   "title": "Old Excel .xls and PowerPoint .ppt",
   "work": ".xls fonts, borders, alignment, text formula results; .ppt gradient and cropping",
   "tests_fixed": 10,
-  "pass_after": 95
+  "pass_after": 95,
+  "done": "31 Oct"
  },
  {
   "day": 10,
