@@ -1,3 +1,4 @@
+import { assetUrl, setAssetsUrl } from './assets.js';
 import './viewer.css';
 import { detectKind } from './detect.js';
 import { FORMATS, SUPPORTED_EXTENSIONS } from './formats.js'; // all libraries and formats, declared once
@@ -37,27 +38,26 @@ const ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2
  * Everything renders in the browser. No document content is sent anywhere.
  *
  * @param {HTMLElement} container
- * @param {{ maxBytes?: number, download?: boolean, print?: boolean, fetchInit?: RequestInit, onBack?: () => void, badge?: boolean }} [options]
+ * @param {{ maxBytes?: number, download?: boolean, print?: boolean, fetchInit?: RequestInit, onBack?: () => void, badge?: boolean, assetsUrl?: string }} [options]
+ *   assetsUrl: where the fonts/ and pdfjs/ folders are served (default: next to the library file).
  *   onBack: when given, a Back button appears at the left of the toolbar and calls it.
  *   badge: show the format label (PDF, Word, Spreadsheet...) next to the file name. Off by default.
  */
 /**
  * Look-alike fonts for Calibri, Cambria, Arial, Times New Roman and Courier New on devices
- * that don't have them (public/fonts, made by scripts/copy-fonts.mjs). Loaded once.
+ * that don't have them (fonts/, made by scripts/copy-fonts.mjs). Loaded once.
  */
 function loadOfficeFonts() {
   if (document.getElementById('dv-office-fonts')) return;
-  // Demo pages live in demos/ (or a sub-folder of it); the fonts are at the site root.
-  const demos = location.pathname.indexOf('/demos/');
-  const base = demos >= 0 ? new URL(location.pathname.slice(0, demos + 1), location.origin) : new URL(document.baseURI);
   const link = document.createElement('link');
   link.id = 'dv-office-fonts';
   link.rel = 'stylesheet';
-  link.href = new URL('fonts/office-fonts.css', base).href;
+  link.href = assetUrl('fonts/office-fonts.css');
   document.head.append(link);
 }
 
 export function createDocViewer(container, options = {}) {
+  setAssetsUrl(options.assetsUrl);
   loadOfficeFonts();
   const { maxBytes = 200 * 1024 * 1024, download = true, print = true, fetchInit, onBack, badge: showBadge = false } = options;
 

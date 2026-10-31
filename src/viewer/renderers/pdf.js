@@ -1,4 +1,5 @@
 import * as pdfjsLib from 'pdfjs-dist';
+import { assetUrl } from '../assets.js';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import 'pdfjs-dist/web/pdf_viewer.css';
 import { el } from '../sanitize.js';
@@ -6,7 +7,7 @@ import { el } from '../sanitize.js';
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
 // Absolute URLs: pdf.js may resolve these from inside the worker.
-const asset = (dir) => new URL(`pdfjs/${dir}/`, document.baseURI).href;
+const asset = (dir) => assetUrl(`pdfjs/${dir}/`);
 const CSS_UNITS = pdfjsLib.PixelsPerInch.PDF_TO_CSS_UNITS; // 96/72 so 100% = real size
 
 /**

@@ -3,13 +3,13 @@
 // (phones, Linux). Each is registered under the Office name with local() first, so a
 // device that has the real font still uses it.
 //   Calibri -> Carlito, Cambria -> Caladea, Arial -> Arimo, Times New Roman -> Tinos, Courier New -> Cousine
-// Output: public/fonts/office-fonts.css + woff2 files (OFL-1.1, from @fontsource).
+// Output: static/fonts/office-fonts.css + woff2 files (OFL-1.1, from @fontsource).
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const dest = join(root, 'public', 'fonts');
+const dest = join(root, 'static', 'fonts');
 const FONTS = [
   ['carlito', ['Calibri', 'Calibri Light']],
   ['caladea', ['Cambria']],
@@ -57,4 +57,4 @@ for (const [pkg, officeNames] of FONTS) {
   }
 }
 writeFileSync(join(dest, 'office-fonts.css'), css);
-console.log(`office fonts copied to public/fonts (${files} files)`);
+console.log(`office fonts copied to static/fonts (${files} files)`);

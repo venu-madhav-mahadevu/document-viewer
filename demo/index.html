@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>docs-viewer demo</title>
+  <style>
+    html, body { height: 100%; margin: 0; font: 14px system-ui, sans-serif; }
+    body { display: flex; flex-direction: column; }
+    header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid #ddd; }
+    #viewer { flex: 1; min-height: 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>docs-viewer</strong>
+    <input type="file" id="file" aria-label="Open a file">
+    <select id="sample" aria-label="Open a test file"><option value="">Test files…</option></select>
+  </header>
+  <div id="viewer"></div>
+  <script type="module">
+    // Dev: the library source (fonts/ and pdfjs/ are served from static/ at the site root).
+    // ?dist: the built library, as an application would use it.
+    const dist = new URLSearchParams(location.search).has('dist');
+    const lib = dist ? '../dist/docs-viewer.js' : '../src/viewer/index.js';
+    if (dist) document.head.insertAdjacentHTML('beforeend', '<link rel="stylesheet" href="../dist/docs-viewer.css">');
+    const { createDocViewer, ACCEPT } = await import(lib);
+    const viewer = createDocViewer(document.getElementById('viewer'), dist ? {} : { assetsUrl: '/' });
+    window.viewer = viewer;
+    const input = document.getElementById('file');
+    input.accept = ACCEPT;
+    input.addEventListener('change', () => input.files[0] && viewer.open(input.files[0]));
+    const files = ['test-word.docx', 'test-word.docm', 'test-word.doc', 'test-excel.xlsx', 'test-excel.xlsm', 'test-excel.xls', 'test-data.csv',
+      'test-slides.pptx', 'test-slides.ppt', 'test-pdf.pdf', 'test-pdf-protected.pdf', 'test-image.jpg', 'test-image-rotated-exif.jpg', 'test-scan-multipage.tif'];
+    const select = document.getElementById('sample');
+    select.append(...files.map((f) => new Option(f, f)));
+    const open = (f) => viewer.open(`../test/files/${f}`, f);
+    select.addEventListener('change', () => select.value && open(select.value));
+    const want = new URLSearchParams(location.search).get('file');
+    if (want) open(want);
+  </script>
+</body>
+</html>

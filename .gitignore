@@ -1,18 +1,11 @@
 node_modules/
 dist/
-public/pdfjs/
+static/
 *.log
-public/samples/sizes.json
-public/demos/convert/
-public/fonts/
+test/out/
+# left over from other branches in a shared working folder
+public/
 .angular/
-scripts/test-pack/out/
-scripts/test-pack/assets/
-scripts/test-pack/pylibs/
-scripts/test-pack/tests-*.json
-scripts/test-pack/all-tests.json
-scripts/test-pack/__pycache__/
-
-# test tool output
-scripts/qa/out/
+scripts/qa/
+scripts/test-pack/
 e2e-*.json
