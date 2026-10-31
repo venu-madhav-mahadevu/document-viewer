@@ -48,7 +48,7 @@
   "day": 6,
   "week": 2,
   "title": "Word and PDF",
-  "work": "Word text boxes, shapes and arrows over pictures, floating pictures with text wrap; PDF bookmarks panel",
+  "work": "Word text boxes, shapes and arrows over pictures, floating pictures with text wrap; PDF bookmarks panel (PDF bookmarks done 31 Oct)",
   "tests_fixed": 10,
   "pass_after": 90
  },
@@ -58,7 +58,8 @@
   "title": "Charts",
   "work": "Column, bar, line and pie charts in Excel and PowerPoint",
   "tests_fixed": 4,
-  "pass_after": 91
+  "pass_after": 91,
+  "done": "31 Oct"
  },
  {
   "day": 8,

@@ -131,10 +131,8 @@ c.showPage()
 c.save()
 
 # Rotate page 7 by 90 degrees (stored rotation), add the rotation test
-reader = PdfReader(os.path.join(OUT, FILE)); writer = PdfWriter()
-for i, pg in enumerate(reader.pages):
-    if i == 3: pass
-    writer.add_page(pg)
+# clone_from keeps the whole document, including the bookmarks (add_page would drop them)
+writer = PdfWriter(clone_from=os.path.join(OUT, FILE))
 writer.pages[2].rotate(90)
 R.add(f'PDF-{len(R.tests) + 1:02d}', FILE, 'Page 3', 'Page stored with 90° rotation', 'Page 3 (Images) is shown turned sideways (rotated 90° clockwise), as in Adobe Reader')
 R.add(f'PDF-{len(R.tests) + 1:02d}', FILE, 'All pages', 'Page count and thumbnails', 'Page bar shows 9 pages; thumbnails show different page sizes')

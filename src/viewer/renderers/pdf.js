@@ -202,6 +202,27 @@ export async function renderPdf({ buffer, mount, scroller, askPassword }) {
       return hits;
     },
     thumbnail: (n, width) => snapshot(n, width, Math.min(window.devicePixelRatio || 1, 2)),
+    /** Bookmarks (the PDF's outline) as a flat list: { title, level, page }. */
+    async outline() {
+      const tree = await pdf.getOutline().catch(() => null);
+      const out = [];
+      const pageOf = async (dest) => {
+        try {
+          const d = typeof dest === 'string' ? await pdf.getDestination(dest) : dest;
+          if (!d) return null;
+          return typeof d[0] === 'number' ? d[0] + 1 : (await pdf.getPageIndex(d[0])) + 1;
+        } catch { return null; }
+      };
+      const walk = async (items, level) => {
+        for (const item of items || []) {
+          if (out.length >= 1000) return;
+          out.push({ title: item.title || '(untitled)', level, page: await pageOf(item.dest) });
+          await walk(item.items, level + 1);
+        }
+      };
+      await walk(tree, 0);
+      return out;
+    },
     async printNodes() {
       const imgs = [];
       for (let n = 1; n <= pdf.numPages; n++) {
