@@ -19,6 +19,10 @@ for (let p = 0; p + 4 <= src.length;) {
   p += 4 + len;
 }
 const rec = (type, data) => ({ type, data });
+
+// LibreOffice writes each rule it cannot save as an empty CONDFMT followed by an invalid record
+// type 0xFFFF: both are removed (the rules are written properly below)
+recs = recs.filter((r, i) => r.type !== 0xffff && !(r.type === 0x01b0 && r.data.readUInt16LE(0) === 0 && recs[i + 1]?.type === 0xffff));
 const BOF = 0x0809; const EOF = 0x000a;
 
 // sheet substreams: [first record index, EOF index] by sheet name
