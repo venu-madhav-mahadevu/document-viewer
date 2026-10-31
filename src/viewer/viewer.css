@@ -200,6 +200,15 @@
 .dv-grid td { background: var(--dv-surface); vertical-align: bottom; } /* Excel aligns cells to the bottom by default */
 .dv-grid td.dv-num { text-align: right; font-variant-numeric: tabular-nums; }
 .dv-grid td.dv-spill { overflow: visible; text-overflow: clip; } /* text runs on into the empty cells on its right */
+.dv-sheet-grid { position: relative; } /* pictures are placed over the grid */
+.dv-sheet-pics { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 1; }
+.dv-sheet-pic { position: absolute; display: block; }
+.dv-grid .dv-cf-icon { float: left; margin-right: 4px; font-weight: 700; }
+.dv-grid td.dv-filter { padding-right: 20px; position: relative; }
+.dv-grid td.dv-filter::before { /* Excel's filter drop-down button */
+  content: "▾"; position: absolute; right: 2px; bottom: 2px; width: 14px; height: 14px; line-height: 13px; text-align: center;
+  font-size: 10px; color: #444; background: #f3f3f3; border: 1px solid #b5b5b5; border-radius: 2px;
+}
 .dv-grid .dv-link { color: #0563c1; text-decoration: underline; }
 .dv-grid td.dv-has-note { position: relative; }
 .dv-grid td.dv-has-note::after { /* Excel's red note mark in the top-right corner */
