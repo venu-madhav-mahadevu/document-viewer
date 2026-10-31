@@ -33,6 +33,9 @@ const E = (() => {
     const take = await p.textContent('#take');
     ok(`${bname}: summary line`, take.includes(`${E.pass} of ${E.applies} tests pass (${E.rate}%)`), JSON.stringify(take.slice(0, 80)));
     ok(`${bname}: What works rows`, (await p.$$eval('#works-t tbody tr', (r) => r.length)) === E.works);
+    // family tiles count only tests that can be checked (N/A shown separately)
+    const tiles = await p.$$eval('#works-fam .f', (fs) => fs.map((f) => f.innerText.replace(/\s+/g, ' ')));
+    ok(`${bname}: family tiles leave out N/A`, tiles.every((t) => { const m = /^\S+ ([\d,]+) of ([\d,]+) tests pass/.exec(t); return m && (E.problems || m[1] === m[2]); }), tiles.join(' | '));
     await p.click('#tab-results');
     ok(`${bname}: Results tiles`, (await p.textContent('#k-rate')) === `${E.rate}%`);
     ok(`${bname}: all 506 tests listed`, (await p.$$eval('#tests tbody tr', (r) => r.length)) === 506);

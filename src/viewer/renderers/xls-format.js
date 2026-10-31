@@ -27,6 +27,7 @@ const ALIGN_V = ['top', 'center', null, 'justify', 'distributed'];
 
 const u16 = (b, p) => b[p] | (b[p + 1] << 8);
 const u32 = (b, p) => (b[p] | (b[p + 1] << 8) | (b[p + 2] << 16) | (b[p + 3] << 24)) >>> 0;
+const f64 = (b, p) => new DataView(b.buffer, b.byteOffset + p, 8).getFloat64(0, true);
 const col = (c) => { let s = ''; for (let n = c + 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + ((n - 1) % 26)) + s; return s; };
 const addr = (r, c) => `${col(c)}${r + 1}`;
 const latin1 = new TextDecoder('latin1');
@@ -228,6 +229,80 @@ function readBlips(b, rec) {
   return blips;
 }
 
+const hexRgb = (b, p) => `#${[b[p], b[p + 1], b[p + 2]].map((x) => x.toString(16).padStart(2, '0')).join('')}`;
+// OOXML names of the .xls icon sets (CFMultistate.iIconSet)
+const ICON_SETS = ['3Arrows', '3ArrowsGray', '3Flags', '3TrafficLights1', '3Signs', '3TrafficLights2', '3Symbols', '3Symbols2',
+  '4Arrows', '4ArrowsGray', '4RedToBlack', '4Rating', '4TrafficLights', '5Arrows', '5ArrowsGray', '5Rating', '5Quarters'];
+const CFVO_TYPES = [null, 'num', 'min', 'max', 'percent', 'percentile', null, 'formula'];
+
+/** XFExt gradient (XFExtGradient) as a CSS background, the same way .xlsx gradients are drawn. */
+function readXfGradient(b, p, palette) {
+  const radial = u32(b, p) === 1;
+  const degree = f64(b, p + 4);
+  const n = Math.min(u32(b, p + 44), 256);
+  const stops = [];
+  for (let k = 0; k < n; k++) {
+    const q = p + 48 + k * 22;
+    const type = u16(b, q);
+    const c = type === 2 ? hexRgb(b, q + 2) : type === 1 && palette[u32(b, q + 2)] ? `#${palette[u32(b, q + 2)]}` : '#ffffff';
+    stops.push(`${c} ${(f64(b, q + 6) * 100).toFixed(1)}%`);
+  }
+  if (stops.length < 2) return null;
+  return radial ? `radial-gradient(${stops.join(', ')})` : `linear-gradient(${degree + 90}deg, ${stops.join(', ')})`;
+}
+
+/**
+ * A CF12 rule (Excel 2007 conditional formatting kept in .xls): color scale, data bar or icon set,
+ * in the same shape as the .xlsx rules the sheet view draws. Null for other rule types.
+ */
+function readCf12(b, r, ranges, palette, priority) {
+  let p = r.body + 12; // after frtRefHeader
+  const ct = b[p];
+  const cce1 = u16(b, p + 2); const cce2 = u16(b, p + 4);
+  const cbDxf = u32(b, p + 6);
+  p += 10 + (cbDxf ? cbDxf : 2) + cce1 + cce2;
+  p += 2 + u16(b, p); // fmlaActive
+  p += 1 + 2 + 2;     // flags, ipriority, icfTemplate
+  p += 1 + b[p];      // template parameters
+  const cfvo = () => {
+    const type = b[p]; const cce = u16(b, p + 1);
+    p += 3 + cce;
+    let val;
+    if (!cce && type !== 2 && type !== 3) { val = String(f64(b, p)); p += 8; }
+    return { type: CFVO_TYPES[type] || 'min', val };
+  };
+  const cfColor = () => {
+    const type = u32(b, p);
+    const c = type === 2 ? hexRgb(b, p + 4) : type === 1 && palette[u32(b, p + 4)] ? `#${palette[u32(b, p + 4)]}` : null;
+    p += 16;
+    return c;
+  };
+  const base = { ranges, priority, formulas: [], dxf: null };
+  if (ct === 3) { // CFGradient: color scale
+    const n = b[p + 3];
+    p += 6;
+    const points = [];
+    for (let k = 0; k < n; k++) { points.push(cfvo()); p += 8; }
+    const colors = [];
+    for (let k = 0; k < n; k++) { p += 8; colors.push(cfColor()); }
+    return { ...base, type: 'colorScale', cfvo: points, colors };
+  }
+  if (ct === 4) { // CFDatabar
+    const showValue = !!(b[p + 3] & 0x02);
+    p += 6;
+    const color = cfColor();
+    return { ...base, type: 'dataBar', showValue, colors: [color], cfvo: [cfvo(), cfvo()] };
+  }
+  if (ct === 6) { // CFMultistate: icon set
+    const n = b[p + 3]; const set = b[p + 4]; const flags = b[p + 5];
+    p += 6;
+    const points = [];
+    for (let k = 0; k < n; k++) { points.push(cfvo()); p += 5; }
+    return { ...base, type: 'iconSet', iconSet: ICON_SETS[set] || '3TrafficLights1', reverse: !!(flags & 0x04), showValue: !(flags & 0x01), cfvo: points, colors: [] };
+  }
+  return null;
+}
+
 /**
  * @param {Uint8Array} b the Workbook stream
  * @param {number} maxRows only cells in the first rows are read
@@ -236,6 +311,7 @@ function readBlips(b, rec) {
 export function readXlsStyles(b, maxRows) {
   const recs = readRecords(b);
   const fonts = []; const xfs = []; const sheets = []; let sst = []; let blips = [];
+  const xfExt = new Map(); // ixfe -> gradient fill (XFExt), read once the palette is known
   const palette = DEFAULT_PALETTE.slice();
   let globals = true;
   for (const r of recs) {
@@ -249,6 +325,7 @@ export function readXlsStyles(b, maxRows) {
       const n = u16(b, r.body);
       for (let i = 0; i < n; i++) palette[8 + i] = [0, 1, 2].map((k) => b[r.body + 2 + i * 4 + k].toString(16).padStart(2, '0')).join('').toUpperCase();
     } else if (r.type === 0x00e0) xfs.push(r); // XF
+    else if (r.type === 0x087d) xfExt.set(u16(b, r.body + 14), r); // XFExt: Excel 2007 additions to an XF
     else if (r.type === 0x0085) sheets.push({ pos: u32(b, r.body), name: readString(b, r.body + 6, 1).text });
     else if (r.type === 0x00fc) sst = readSst(b, r);
     else if (r.type === 0x00eb) { try { blips = readBlips(b, r); } catch { blips = []; } }
@@ -295,6 +372,15 @@ export function readXlsStyles(b, maxRows) {
       const fls = (b2 >>> 26) & 0x3f;
       const icvs = u16(b, p + 18);
       if (FILLS[fls] && fls > 1) s.pattern = { pattern: FILLS[fls], fg: color(icvs & 0x7f) || '#000000', bg: color((icvs >>> 7) & 0x7f) || '#ffffff' };
+      const ext = xfExt.get(ixfe);
+      if (ext) {
+        // ExtProp list: type 6 is a gradient fill
+        for (let k = 0, q = ext.body + 20; k < u16(b, ext.body + 18) && q + 4 <= ext.end; k++) {
+          const cb = u16(b, q + 2);
+          if (u16(b, q) === 6) { const g = readXfGradient(b, q + 4, palette); if (g) s.gradient = g; }
+          q += Math.max(cb, 4);
+        }
+      }
       if (Object.keys(s).length) out = s;
     }
     cache.set(ixfe, out);
@@ -375,6 +461,15 @@ export function readXlsStyles(b, maxRows) {
             ? { ranges: cfRanges, type: 'cellIs', operator: ops[cp], formulas: [f1, f2].filter((x) => x != null), dxf: fmt, priority: rules.length, cfvo: [], colors: [] }
             : { ranges: cfRanges, type: 'expression', formulas: [f1], dxf: fmt, priority: rules.length, cfvo: [], colors: [] });
         }
+      } else if (t === 0x0879) { // CONDFMT12: ranges of the following CF12 records
+        const n = u16(b, r.body + 24);
+        cfRanges = [];
+        for (let k = 0; k < n; k++) {
+          const q = r.body + 26 + k * 8;
+          cfRanges.push(`${addr(u16(b, q), u16(b, q + 4))}:${addr(u16(b, q + 2), u16(b, q + 6))}`);
+        }
+      } else if (t === 0x087a && cfRanges) { // CF12: color scale, data bar, icon set
+        try { const rule = readCf12(b, r, cfRanges, palette, rules.length); if (rule) rules.push(rule); } catch { /* optional */ }
       } else if (t === 0x00ec) { // MSODRAWING: pictures placed on the sheet
         try {
           for (const pic of readSheetPictures(b, r, blips)) {
