@@ -66,9 +66,10 @@
   "day": 8,
   "week": 2,
   "title": "Old Word .doc",
-  "work": "Pictures, table header and shading, merged cells, header, two columns, landscape page",
-  "tests_fixed": 10,
-  "pass_after": 93
+  "work": "Pictures (inline and floating), shapes, arrows and text boxes, table header and shading, merged cells, double underline, paragraph shading, links, equations, header and footer with page numbers, two columns, landscape page",
+  "tests_fixed": 14,
+  "pass_after": 93,
+  "done": "31 Oct"
  },
  {
   "day": 9,

@@ -369,6 +369,13 @@
 .dv-back[hidden] { display: none; }
 @media (max-width: 700px) { .dv-back span { display: none; } .dv-back { padding: 0 8px; } }
 .dv-legacy-page { position: relative; }
+.dv-doc-math { math-style: normal; } /* .doc equations: fractions at full size, as in Word */
+.dv-doc-shape { position: relative; box-sizing: border-box; } /* .doc floating shapes, text boxes, pictures */
+.dv-doc-shape > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.dv-doc-shape-text { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; }
+.dv-doc-shape-text p { margin: 0; text-indent: 0; }
+.dv-doc-header, .dv-doc-footer { position: absolute; overflow: hidden; } /* .doc header / footer in the page margins */
+.dv-doc-header p, .dv-doc-footer p { margin: 0; }
 .dv-legacy-footer {
   position: absolute; left: 0; right: 0; bottom: 40px; text-align: center;
   font: 12px/1 "Segoe UI", Arial, sans-serif; color: #80868b; white-space: nowrap;
