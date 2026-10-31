@@ -3,6 +3,7 @@ import { el } from '../sanitize.js';
 import { clonePagesForPrint, PAGE_WIDTH, PAGE_WIDTH_LANDSCAPE } from '../print.js';
 import { readWordDocument, readPageSetup, paragraphStyle, charStyle } from './doc-format.js';
 import { readPresentation } from './ppt-format.js';
+import { PRESET_SHAPES, MSOSPT_PRESET, svgEl } from './shapes.js';
 import { bulletCode } from '../bullets.js';
 import { shrinkToFit } from '../fit.js';
 
@@ -426,6 +427,22 @@ const lines = (texts) => texts.flatMap((t) => t.split(/[\r\n]/)).map((s) => s.re
 
 const bulletText = (code, fontName = '') => (code === undefined ? '•' : bulletCode(code, fontName));
 
+/** Number text for a .ppt auto-number scheme ([MS-PPT] TextAutoNumberSchemeEnum). */
+function autoNumberText(scheme, n) {
+  const alpha = (u) => { let s = ''; for (let k = n; k > 0; k = Math.floor((k - 1) / 26)) s = String.fromCharCode((u ? 65 : 97) + ((k - 1) % 26)) + s; return s; };
+  const roman = (u) => {
+    let k = n; let s = '';
+    for (const [v, r] of [[1000, 'm'], [900, 'cm'], [500, 'd'], [400, 'cd'], [100, 'c'], [90, 'xc'], [50, 'l'], [40, 'xl'], [10, 'x'], [9, 'ix'], [5, 'v'], [4, 'iv'], [1, 'i']]) while (k >= v) { s += r; k -= v; }
+    return u ? s.toUpperCase() : s;
+  };
+  const [value, form] = {
+    0: [alpha(false), '.'], 1: [alpha(true), '.'], 2: [n, ')'], 3: [n, '.'], 4: [roman(false), '()'], 5: [roman(false), ')'],
+    6: [roman(false), '.'], 7: [roman(true), '.'], 8: [alpha(false), '()'], 9: [alpha(false), ')'], 10: [alpha(true), '()'],
+    11: [alpha(true), ')'], 12: [n, '()'], 13: [n, ''], 14: [roman(true), '()'], 15: [roman(true), ')'],
+  }[scheme] || [n, '.'];
+  return form === '()' ? `(${value})` : `${value}${form}`;
+}
+
 /** One slide drawn like PowerPoint: positioned shapes, pictures and formatted text. */
 function renderDrawnSlide(slide, size, W, H, urlFor) {
   const scale = W / size.w;          // px per master unit
@@ -455,23 +472,60 @@ function renderDrawnSlide(slide, size, W, H, urlFor) {
       line.setAttribute('stroke', sh.line || '#000000');
       line.setAttribute('stroke-width', String(Math.max(sh.lineWidth * scale, 1)));
       line.setAttribute('vector-effect', 'non-scaling-stroke');
+      // arrow heads at the line's start / end
+      for (const [end, which] of [['start', 'marker-start'], ['end', 'marker-end']]) {
+        const type = sh.arrows?.[end];
+        if (!type || type === 'none') continue;
+        const id = `dva${Math.random().toString(36).slice(2, 9)}`;
+        const marker = svgEl('marker', { id, viewBox: '0 0 10 10', refX: type === 'oval' || type === 'diamond' ? 5 : 9, refY: 5, markerWidth: 3, markerHeight: 3, orient: 'auto-start-reverse', markerUnits: 'strokeWidth' });
+        const color = sh.line || '#000000';
+        const head = type === 'oval' ? svgEl('circle', { cx: 5, cy: 5, r: 4.5, fill: color })
+          : type === 'diamond' ? svgEl('path', { d: 'M0 5L5 0L10 5L5 10Z', fill: color })
+            : type === 'arrow' ? svgEl('path', { d: 'M1 1L9 5L1 9', fill: 'none', stroke: color, 'stroke-width': 1.5 })
+              : svgEl('path', { d: type === 'stealth' ? 'M0 0L10 5L0 10L3 5Z' : 'M0 0L10 5L0 10Z', fill: color });
+        marker.append(head);
+        const defs = svgEl('defs');
+        defs.append(marker);
+        svg.append(defs);
+        line.setAttribute(which, `url(#${id})`);
+      }
       svg.append(line);
       box.append(svg);
       card.append(box);
       continue;
     }
 
-    if (sh.fill) {
-      box.style.backgroundColor = sh.fill;
-      if (sh.fillOpacity < 1) box.style.backgroundColor = `color-mix(in srgb, ${sh.fill} ${Math.round(sh.fillOpacity * 100)}%, transparent)`;
+    const fill = sh.fill && sh.fillOpacity < 1 ? `color-mix(in srgb, ${sh.fill} ${Math.round(sh.fillOpacity * 100)}%, transparent)` : sh.fill;
+    const draw = PRESET_SHAPES[MSOSPT_PRESET[sh.spt]];
+    if (draw && !sh.picture) {
+      // the shape's real outline (arrow, star, callout…) drawn in SVG behind its text
+      const w = Math.max(sh.w * scale, 1); const h = Math.max(sh.h * scale, 1);
+      const svg = svgEl('svg', { class: 'dv-ppt-geom', viewBox: `0 0 ${w} ${h}`, preserveAspectRatio: 'none', 'aria-hidden': 'true' });
+      const path = svgEl('path', { d: draw(w, h, (name, def) => def), fill: fill || 'none' });
+      if (sh.line) { path.setAttribute('stroke', sh.line); path.setAttribute('stroke-width', String(Math.max(sh.lineWidth * scale, 1))); }
+      svg.append(path);
+      box.append(svg);
+    } else {
+      // .ppt fillAngle 0 = bottom to top, the same as CSS 0deg
+      if (sh.gradient) box.style.background = `linear-gradient(${sh.gradient.angle}deg, ${sh.gradient.from}, ${sh.gradient.to})`;
+      else if (fill) box.style.backgroundColor = fill;
+      if (sh.line) box.style.border = `${Math.max(sh.lineWidth * scale, 1).toFixed(2)}px solid ${sh.line}`;
+      if (sh.kind === 'ellipse') box.style.borderRadius = '50%';
+      if (sh.kind === 'roundRect') box.style.borderRadius = px(Math.min(sh.w, sh.h) * ((sh.adjust ?? 3600) / 21600));
     }
-    if (sh.line) box.style.border = `${Math.max(sh.lineWidth * scale, 1).toFixed(2)}px solid ${sh.line}`;
-    if (sh.kind === 'ellipse') box.style.borderRadius = '50%';
-    if (sh.kind === 'roundRect') box.style.borderRadius = px(Math.min(sh.w, sh.h) * ((sh.adjust ?? 3600) / 21600));
     if (sh.picture) {
       const img = el('img', 'dv-ppt-picture');
       img.src = urlFor(sh.picture);
       img.alt = '';
+      if (sh.crop) {
+        // cropped picture: scale the image so only the kept part fills the box
+        const { t, b, l, r } = sh.crop;
+        box.style.overflow = 'hidden';
+        Object.assign(img.style, {
+          position: 'absolute', width: `${100 / (1 - l - r)}%`, height: `${100 / (1 - t - b)}%`,
+          left: `${(-l / (1 - l - r)) * 100}%`, top: `${(-t / (1 - t - b)) * 100}%`, maxWidth: 'none',
+        });
+      }
       box.append(img);
     }
 
@@ -485,6 +539,7 @@ function renderDrawnSlide(slide, size, W, H, urlFor) {
       inner.style.justifyContent = ['flex-start', 'center', 'flex-end'][t.anchor % 3];
       if (!t.wrap) inner.style.whiteSpace = 'pre';
       if (sh.flipH || sh.flipV) inner.style.transform = `scale(${sh.flipH ? -1 : 1}, ${sh.flipV ? -1 : 1})`; // keep text readable
+      const counters = new Map(); // level -> { scheme, n } for numbered paragraphs
       for (const para of t.paragraphs) {
         const p = el('div', 'dv-ppt-p');
         const pf = para.pf;
@@ -498,8 +553,18 @@ function renderDrawnSlide(slide, size, W, H, urlFor) {
         if (pf.spaceBefore) p.style.marginTop = space(pf.spaceBefore);
         if (pf.spaceAfter) p.style.marginBottom = space(pf.spaceAfter);
 
-        if (pf.hasBullet && !para.empty) {
-          const b = el('span', 'dv-ppt-bullet', bulletText(pf.bulletChar, para.bulletFontName));
+        let numberText = null;
+        if (para.autoNum && !para.empty) {
+          // numbered list: the counter restarts when the scheme changes, per level
+          const key = para.level;
+          const prev = counters.get(key);
+          const n = prev && prev.scheme === para.autoNum.scheme ? prev.n + 1 : para.autoNum.start;
+          counters.set(key, { scheme: para.autoNum.scheme, n });
+          for (const k of [...counters.keys()]) if (k > key) counters.delete(k);
+          numberText = autoNumberText(para.autoNum.scheme, n);
+        } else if (!para.empty) counters.delete(para.level);
+        if ((pf.hasBullet || numberText) && !para.empty) {
+          const b = el('span', 'dv-ppt-bullet', numberText ?? bulletText(pf.bulletChar, para.bulletFontName));
           const gap = (pf.leftMargin ?? 0) - (pf.indent ?? 0);
           if (gap > 0) b.style.minWidth = px(gap);
           const first = para.runs[0] || para.emptyCf;

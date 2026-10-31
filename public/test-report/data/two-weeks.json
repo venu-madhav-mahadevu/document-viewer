@@ -14,15 +14,17 @@
   "title": "PowerPoint shapes",
   "work": "Triangle, arrows, star, callout, chevron, pentagon, hexagon (25-30 common shapes); connector arrow heads",
   "tests_fixed": 10,
-  "pass_after": 81
+  "pass_after": 81,
+  "done": "31 Oct"
  },
  {
   "day": 3,
   "week": 1,
   "title": "PowerPoint layout",
-  "work": "Slide 1 title size and position, table styles (colored header, banded rows), gradient fills, picture cropping",
+  "work": "Slide 1 title size and position, table styles (colored header, banded rows), gradient fills, picture cropping (also done early: .ppt numbered lists and gradients)",
   "tests_fixed": 10,
-  "pass_after": 83
+  "pass_after": 83,
+  "done": "31 Oct"
  },
  {
   "day": 4,

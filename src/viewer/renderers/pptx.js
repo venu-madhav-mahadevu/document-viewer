@@ -3,6 +3,7 @@ import { bulletGlyph } from '../bullets.js';
 import { shrinkToFit } from '../fit.js';
 import { el, sanitizeLinks } from '../sanitize.js';
 import { clonePagesForPrint, PAGE_WIDTH, PAGE_WIDTH_LANDSCAPE } from '../print.js';
+import { PRESET_SHAPES, svgEl } from './shapes.js';
 
 /*
  * Lightweight, dependency-free PPTX renderer (JSZip + DOMParser only).
@@ -230,25 +231,78 @@ function place(node, box, map) {
   if (t.length) node.style.transform = t.join(' ');
 }
 
-function applyShapeStyle(node, spPr, ctx, styleNode) {
-  const fill = child(spPr, 'solidFill');
-  if (fill) node.style.background = colorFrom(fill, ctx.theme);
-  else if (!child(spPr, 'noFill') && styleNode) {
+/** Gradient fill: its stops and angle (PowerPoint 0° = left to right). */
+function readGradient(grad, theme) {
+  const stops = kids(child(grad, 'gsLst'), 'gs')
+    .map((gs) => ({ pos: Number(attr(gs, 'pos') || 0) / 1000, color: colorFrom(gs, theme) }))
+    .filter((s) => s.color)
+    .sort((a, b) => a.pos - b.pos);
+  if (!stops.length) return null;
+  const lin = child(grad, 'lin');
+  const path = attr(child(grad, 'path'), 'path');
+  return { stops, angle: lin ? Number(attr(lin, 'ang') || 0) / 60000 : 90, radial: !!path && path !== 'rect' ? true : !!path };
+}
+const gradientCss = (g) => {
+  const stops = g.stops.map((s) => `${s.color} ${s.pos}%`).join(', ');
+  return g.radial ? `radial-gradient(circle, ${stops})` : `linear-gradient(${g.angle + 90}deg, ${stops})`;
+};
+
+/** Fill (color or gradient) and outline of a shape, from its own properties or its style. */
+function shapePaint(spPr, ctx, styleNode) {
+  let fill = null;
+  const solid = child(spPr, 'solidFill');
+  const grad = child(spPr, 'gradFill');
+  if (solid) fill = colorFrom(solid, ctx.theme);
+  else if (grad) fill = readGradient(grad, ctx.theme);
+  else if (!child(spPr, 'noFill') && !child(spPr, 'blipFill') && styleNode) {
     const ref = child(styleNode, 'fillRef');
-    if (ref && attr(ref, 'idx') !== '0') node.style.background = colorFrom(ref, ctx.theme);
+    if (ref && attr(ref, 'idx') !== '0') fill = colorFrom(ref, ctx.theme);
   }
+  let stroke = null;
+  let strokeWidth = 0;
   const ln = child(spPr, 'ln');
   if (ln && !child(ln, 'noFill')) {
-    const color = colorFrom(child(ln, 'solidFill'), ctx.theme);
-    if (color) node.style.border = `${Math.max(1, px(attr(ln, 'w') || 9525))}px solid ${color}`;
+    stroke = colorFrom(child(ln, 'solidFill'), ctx.theme) || (styleNode && colorFrom(child(styleNode, 'lnRef'), ctx.theme));
+    strokeWidth = Math.max(1, px(attr(ln, 'w') || 9525));
   } else if (!ln && styleNode) {
     const ref = child(styleNode, 'lnRef');
-    const color = ref && attr(ref, 'idx') !== '0' && colorFrom(ref, ctx.theme);
-    if (color) node.style.border = `1px solid ${color}`;
+    stroke = ref && attr(ref, 'idx') !== '0' ? colorFrom(ref, ctx.theme) : null;
+    strokeWidth = stroke ? 1 : 0;
   }
+  return { fill, stroke, strokeWidth };
+}
+
+function applyShapeStyle(node, spPr, ctx, styleNode, size) {
+  const { fill, stroke, strokeWidth } = shapePaint(spPr, ctx, styleNode);
   const geom = attr(child(spPr, 'prstGeom'), 'prst');
-  if (geom === 'ellipse') node.style.borderRadius = '50%';
-  else if (geom === 'roundRect') node.style.borderRadius = '10%';
+  const draw = PRESET_SHAPES[geom];
+  if (draw && size) {
+    // Draw the real outline in SVG behind the text instead of a box.
+    const gd = new Map(kids(child(child(spPr, 'prstGeom'), 'avLst'), 'gd')
+      .map((g) => [attr(g, 'name'), Number(/val\s+(-?\d+)/.exec(attr(g, 'fmla') || '')?.[1])]));
+    const adj = (name, def) => (Number.isFinite(gd.get(name)) ? gd.get(name) : def);
+    const svg = svgEl('svg', { class: 'dv-pptx-geom', viewBox: `0 0 ${size.w} ${size.h}`, preserveAspectRatio: 'none', 'aria-hidden': 'true' });
+    const path = svgEl('path', { d: draw(size.w, size.h, adj), 'vector-effect': 'non-scaling-stroke' });
+    if (fill && typeof fill === 'object') {
+      const id = `dvg${Math.random().toString(36).slice(2, 9)}`;
+      const g = svgEl(fill.radial ? 'radialGradient' : 'linearGradient', fill.radial ? { id } : {
+        id, gradientTransform: `rotate(${fill.angle} 0.5 0.5)`,
+      });
+      for (const s of fill.stops) g.append(svgEl('stop', { offset: `${s.pos}%`, 'stop-color': s.color }));
+      const defs = svgEl('defs');
+      defs.append(g);
+      svg.append(defs);
+      path.setAttribute('fill', `url(#${id})`);
+    } else path.setAttribute('fill', fill || 'none');
+    if (stroke) { path.setAttribute('stroke', stroke); path.setAttribute('stroke-width', strokeWidth); }
+    svg.append(path);
+    node.prepend(svg);
+    return;
+  }
+  if (fill) node.style.background = typeof fill === 'object' ? gradientCss(fill) : fill;
+  if (stroke) node.style.border = `${strokeWidth}px solid ${stroke}`;
+  if (geom === 'ellipse' || geom === 'flowChartConnector') node.style.borderRadius = '50%';
+  else if (geom === 'roundRect' || geom === 'flowChartAlternateProcess') node.style.borderRadius = `${Math.min(size?.w || 0, size?.h || 0) * 0.1667}px`;
 }
 
 const DEFAULT_SIZES = { title: 44, ctrTitle: 54, subTitle: 24, body: [28, 24, 20, 18, 18], other: 18 };
@@ -393,6 +447,7 @@ function renderText(txBody, sp, ctx) {
       const color = colorFrom(child(rPr, 'solidFill'), ctx.theme) ||
         (placeholderOf(sp) ? inh.color : styleColor || inh.color) || `#${ctx.theme.dk1}`;
       span.style.color = color;
+      if (child(rPr, 'solidFill')) span.dataset.ownColor = '1'; // a table style must not recolor it
       const face = attr(child(rPr, 'latin'), 'typeface');
       const font = !face || face === '+mn-lt' ? ctx.theme.minorFont : face === '+mj-lt' ? ctx.theme.majorFont : face;
       span.style.fontFamily = `"${(inh.isTitle && !face) ? ctx.theme.majorFont : font}", "Segoe UI", Arial, sans-serif`;
@@ -424,7 +479,8 @@ async function renderShape(sp, ctx, map) {
   if (!box) return null;
   const node = el('div', 'dv-pptx-shape');
   place(node, box, map);
-  applyShapeStyle(node, spPr, ctx, child(sp, 'style'));
+  const mapped = map({ x: box.x, y: box.y, cx: box.cx, cy: box.cy });
+  applyShapeStyle(node, spPr, ctx, child(sp, 'style'), { w: Math.max(1, px(mapped.cx)), h: Math.max(1, px(mapped.cy)) });
   const blip = child(spPr, 'blipFill', 'blip');
   if (blip) {
     const img = await ctx.image(rid(blip, 'embed'));
@@ -498,6 +554,30 @@ function renderConnector(cxn, ctx, map) {
   const [x1, x2] = box.flipH ? [w, 0] : [0, w];
   const [y1, y2] = box.flipV ? [h, 0] : [0, h];
   Object.entries({ x1, y1, x2, y2, stroke: color, 'stroke-width': width }).forEach(([k, v]) => line.setAttribute(k, v));
+  // Arrow heads: headEnd is at the line's start, tailEnd at its end.
+  const defs = svgEl('defs');
+  for (const [end, attrName] of [['headEnd', 'marker-start'], ['tailEnd', 'marker-end']]) {
+    const type = attr(child(ln, end), 'type');
+    if (!type || type === 'none') continue;
+    const id = `dva${Math.random().toString(36).slice(2, 9)}`;
+    const size = { sm: 2, med: 3, lg: 5 };
+    const mw = size[attr(child(ln, end), 'w')] || 3;
+    const ml = size[attr(child(ln, end), 'len')] || 3;
+    const marker = svgEl('marker', {
+      id, viewBox: '0 0 10 10', refX: type === 'oval' || type === 'diamond' ? 5 : 9, refY: 5,
+      markerWidth: ml, markerHeight: mw, orient: 'auto-start-reverse', markerUnits: 'strokeWidth',
+    });
+    const shape = type === 'oval' ? svgEl('circle', { cx: 5, cy: 5, r: 4.5 })
+      : type === 'diamond' ? svgEl('path', { d: 'M0 5L5 0L10 5L5 10Z' })
+        : type === 'arrow' ? svgEl('path', { d: 'M1 1L9 5L1 9', fill: 'none', stroke: color, 'stroke-width': 1.5 })
+          : type === 'stealth' ? svgEl('path', { d: 'M0 0L10 5L0 10L3 5Z' })
+            : svgEl('path', { d: 'M0 0L10 5L0 10Z' }); // triangle
+    if (type !== 'arrow') shape.setAttribute('fill', color);
+    marker.append(shape);
+    defs.append(marker);
+    line.setAttribute(attrName, `url(#${id})`);
+  }
+  if (defs.children.length) svg.append(defs);
   svg.append(line);
   return svg;
 }
@@ -523,24 +603,63 @@ function renderGraphicFrame(gf, ctx, map) {
     colgroup.append(col);
   }
   table.append(colgroup);
-  for (const tr of kids(tbl, 'tr')) {
+  const look = tableLook(tbl, ctx);
+  const rows = kids(tbl, 'tr');
+  rows.forEach((tr, r) => {
     const row = el('tr');
     row.style.height = `${px(attr(tr, 'h'))}px`;
-    for (const tc of kids(tr, 'tc')) {
-      if (attr(tc, 'hMerge') === '1' || attr(tc, 'vMerge') === '1') continue;
+    const part = look && (look.firstRow && r === 0 ? 'header' : look.lastRow && r === rows.length - 1 ? 'total' : 'body');
+    const bodyIndex = r - (look?.firstRow ? 1 : 0);
+    kids(tr, 'tc').forEach((tc, c) => {
+      if (attr(tc, 'hMerge') === '1' || attr(tc, 'vMerge') === '1') return;
       const cell = el('td');
       if (attr(tc, 'gridSpan')) cell.colSpan = Number(attr(tc, 'gridSpan'));
       if (attr(tc, 'rowSpan')) cell.rowSpan = Number(attr(tc, 'rowSpan'));
+      if (look) {
+        // PowerPoint table style: colored header / total row, banded body rows, white grid
+        cell.style.background = part === 'body' ? (look.bandRow && bodyIndex % 2 === 0 ? look.band : look.plain) : look.accent;
+        cell.style.border = `1px solid ${look.grid}`;
+      }
       const fill = colorFrom(child(tc, 'tcPr', 'solidFill'), ctx.theme);
       if (fill) cell.style.background = fill;
       const txBody = child(tc, 'txBody');
       if (txBody) cell.append(renderText(txBody, tc, ctx));
+      const strong = look && (part !== 'body' || (look.firstCol && c === 0) || (look.lastCol && c === kids(tr, 'tc').length - 1));
+      if (look && part !== 'body') {
+        for (const span of cell.querySelectorAll('span:not([data-own-color])')) span.style.color = look.headerText;
+      }
+      if (strong) for (const span of cell.querySelectorAll('span')) span.style.fontWeight = '700';
       row.append(cell);
-    }
+    });
     table.append(row);
-  }
+  });
   wrap.append(table);
   return wrap;
+}
+
+/**
+ * Built-in table styles are referenced by id and usually not stored in the file. The common
+ * "Medium Style 2 - Accent n" look: header in the accent color with white bold text, body rows
+ * banded in two light tints of it, white grid lines.
+ */
+const MEDIUM_STYLE_2 = {
+  '{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}': 'accent1', '{21E4AEA4-8DFA-4A89-87EB-49C32662AFE8}': 'accent2',
+  '{F5AB1C69-6EDB-4FF4-983F-18BD219EF322}': 'accent3', '{00A15C55-8517-42AA-B614-E9B94910E393}': 'accent4',
+  '{7DF18680-E054-41AD-8BC1-D1AEF772440D}': 'accent5', '{93296810-A885-4BE3-A3E7-6D5BEEA58F35}': 'accent6',
+  '{073A0DAA-6AF3-43AB-8588-CEC1D06C72B9}': 'dk1',
+};
+function tableLook(tbl, ctx) {
+  const tblPr = child(tbl, 'tblPr');
+  const id = child(tblPr, 'tableStyleId')?.textContent?.trim();
+  const key = MEDIUM_STYLE_2[id];
+  if (!key || !ctx.theme[key]) return null;
+  const [r, g, b] = hexToRgb(ctx.theme[key]);
+  const tint = (k) => `rgb(${[r, g, b].map((v) => Math.round(v + (255 - v) * (1 - k))).join(',')})`;
+  const on = (name) => attr(tblPr, name) === '1';
+  return {
+    accent: `rgb(${r},${g},${b})`, band: tint(0.4), plain: tint(0.2), grid: '#ffffff', headerText: '#ffffff',
+    firstRow: on('firstRow'), lastRow: on('lastRow'), firstCol: on('firstCol'), lastCol: on('lastCol'), bandRow: on('bandRow'),
+  };
 }
 
 async function renderTree(tree, ctx, map, out) {
