@@ -7,11 +7,23 @@
  *   - styles (STSH): Normal, Heading 1-9 ... with their inheritance
  *   - lists (PlfLst / PlfLfo): bullets and numbering with level indents
  *   - the font table (SttbfFfn)
- * Everything not covered (images, text boxes, columns, headers/footers,
- * exact line breaking) is simplified.
+ *   - sections: page size, margins, orientation and columns (PlcfSed)
+ *   - tables (TDefTable): column widths, merged cells, borders, cell shading
+ *   - fields: hyperlinks, page numbers; headers and footers (PlcfHdd)
+ *   - inline pictures (PICF in the Data stream) and embedded equations (MTEF)
+ * Floating shapes, text boxes and pictures are read in doc-drawing.js. Line breaking follows
+ * the browser, so a page may end a line earlier or later than in Word.
  */
 
 import { bulletCode } from '../bullets.js';
+
+/** Page-number fields in headers / footers, replaced with the page's numbers when laid out. */
+export const PAGE_MARK = '\u2063dvPAGE\u2063';
+export const PAGES_MARK = '\u2063dvPAGES\u2063';
+const OBJ = '\ufffc'; // an inline picture or object (equation) in paragraph text
+
+import { readDrawings } from './doc-drawing.js';
+import { readMtef } from './mtef.js';
 
 const cp1252 = new TextDecoder('windows-1252');
 const utf16 = new TextDecoder('utf-16le');
@@ -65,7 +77,7 @@ function applyChp(chp, b, start, end, base = {}) {
       case 0x083a: chp.smallCaps = toggle(b[at], base.smallCaps); break;
       case 0x083b: chp.caps = toggle(b[at], base.caps); break;
       case 0x083c: chp.hidden = toggle(b[at], base.hidden); break;
-      case 0x2a3e: chp.underline = b[at] !== 0; break;
+      case 0x2a3e: chp.underline = b[at]; break;                           // kul: 1 single, 3 double, 0 none
       case 0x4a43: chp.size = u16(b, at) / 2; break;                      // half-points -> pt
       case 0x2a42: chp.color = ICO[b[at]] ?? chp.color; break;
       case 0x6870: chp.color = b[at + 3] ? null                            // fAuto
@@ -73,10 +85,46 @@ function applyChp(chp, b, start, end, base = {}) {
       case 0x2a0c: chp.highlight = ICO[b[at]] ?? null; break;
       case 0x4a4f: chp.font = u16(b, at); break;                            // ASCII font index
       case 0x2a48: chp.vert = b[at]; break;                                 // 1 super, 2 sub
+      case 0x6a03: chp.picLocation = u32(b, at); break;                    // picture: PICF offset in the Data stream
+      case 0x0855: chp.special = b[at] !== 0; break;                        // fSpec: the character is an object
+      case 0x080a: chp.ole = b[at] !== 0; break;                            // fOle2: an embedded object (equation…)
       default:
     }
   });
   return chp;
+}
+
+const hex3 = (b, q) => `#${[b[q], b[q + 1], b[q + 2]].map((x) => x.toString(16).padStart(2, '0')).join('')}`;
+/** Shd80 (2 bytes): pattern 1 = solid foreground, 0 = clear (background color). */
+const shd80 = (v) => { const ipat = v >> 10; return ipat === 1 ? ICO[v & 0x1f] : ipat === 0 ? ICO[(v >> 5) & 0x1f] : null; };
+/** Shd (10 bytes): foreground and background COLORREF (byte 4 = 0xff means automatic) and pattern. */
+const shdRgb = (b, q) => {
+  const ipat = u16(b, q + 8);
+  const fore = b[q + 3] === 0xff ? null : hex3(b, q);
+  const back = b[q + 7] === 0xff ? null : hex3(b, q + 4);
+  return ipat === 1 ? fore : ipat === 0 ? back : back || fore;
+};
+/** Brc80 (4 bytes): width in eighths of a point, line type, ico color. */
+const brc80 = (b, q) => (b[q + 1] && b[q + 1] !== 0xff ? { width: b[q] / 8, type: b[q + 1], color: ICO[b[q + 2]] || '#000000' } : null);
+
+/**
+ * sprmTDefTable: the row's column edges (twips) and, per cell, its merge flags and borders
+ * ([MS-DOC] TDefTableOperand / TC80).
+ */
+function readTableDef(b, at) {
+  const n = b[at];
+  const centers = Array.from({ length: n + 1 }, (_, i) => i16(b, at + 1 + i * 2));
+  const tc0 = at + 1 + (n + 1) * 2;
+  const cells = Array.from({ length: n }, (_, i) => {
+    const q = tc0 + i * 20;
+    const grf = u16(b, q);
+    return {
+      width: centers[i + 1] - centers[i],
+      merged: !!(grf & 0x2), vertMerge: !!(grf & 0x20), vertRestart: !!(grf & 0x40), vAlign: (grf >> 7) & 3,
+      borders: { top: brc80(b, q + 4), left: brc80(b, q + 8), bottom: brc80(b, q + 12), right: brc80(b, q + 16) },
+    };
+  });
+  return { centers, cells };
 }
 
 function applyPap(pap, b, start, end) {
@@ -94,6 +142,28 @@ function applyPap(pap, b, start, end) {
       case 0x2640: pap.outline = b[at]; break;
       case 0x2407: pap.pageBreakBefore = b[at] !== 0; break;
       case 0x246d: pap.contextual = b[at] !== 0; break;                    // no space between same-style paragraphs
+      case 0x442d: {                                                        // Shd80: paragraph shading (ico colors)
+        const v = u16(b, at); const ipat = v >> 10;
+        pap.shading = ipat === 1 ? ICO[v & 0x1f] : ICO[(v >> 5) & 0x1f] || null;
+        break;
+      }
+      case 0xd608: pap.tap = { ...pap.tap, ...readTableDef(b, at) }; break; // table row: column edges and cells
+      case 0xd609: {                                                        // cell shading, Word 97 colors
+        const n = b[at - 1] / 2;
+        pap.tap = { ...pap.tap, shd80: Array.from({ length: n }, (_, i) => shd80(u16(b, at + i * 2))) };
+        break;
+      }
+      case 0xd612: {                                                        // cell shading, RGB (cells 0-21)
+        const n = Math.floor(b[at - 1] / 10);
+        pap.tap = { ...pap.tap, shd: Array.from({ length: n }, (_, i) => shdRgb(b, at + i * 10)) };
+        break;
+      }
+      case 0xc64d: {                                                        // Shd: paragraph shading (RGB)
+        const rgb = (q) => (b[q + 3] === 0xff ? null : `#${[b[q], b[q + 1], b[q + 2]].map((x) => x.toString(16).padStart(2, '0')).join('')}`);
+        const ipat = u16(b, at + 8);
+        pap.shading = ipat === 1 ? rgb(at) : rgb(at + 4);
+        break;
+      }
       case 0x6424: case 0x6425: case 0x6426: case 0x6427: {                 // Brc80 top/left/bottom/right
         const side = ['top', 'left', 'bottom', 'right'][op - 0x6424];
         pap.borders = { ...pap.borders, [side]: b[at + 1] && b[at + 1] !== 0xff ? { width: b[at] / 8, color: ICO[b[at + 2]] || '#000000' } : null };
@@ -303,6 +373,45 @@ function findRun(runs, fc) {
 
 // ------------------------------------------------------------------ section
 
+/**
+ * Every section of the document: where it ends (CP), page size, margins, orientation and
+ * columns (twips). Word 97 defaults where a value is not stored.
+ */
+export function readSections(wd, table) {
+  const fc = u32(wd, FIB_RGFCLCB + FC.plcfSed * 8);
+  const lcb = u32(wd, FIB_RGFCLCB + FC.plcfSed * 8 + 4);
+  const n = lcb ? (lcb - 4) / 16 : 0;
+  const out = [];
+  let prev = { width: 12240, height: 15840, left: 1800, right: 1800, top: 1440, bottom: 1440, cols: 1, colSpace: 720, landscape: false, headerTop: 720, footerBottom: 720 };
+  for (let i = 0; i < n; i++) {
+    // columns start from one in each section; the page setup carries over unless stored
+    const sec = { ...prev, cols: 1, colSpace: 720, cpEnd: i32(table, fc + (i + 1) * 4) };
+    const fcSepx = u32(table, fc + (n + 1) * 4 + i * 12 + 2);
+    if (fcSepx !== 0xffffffff && fcSepx + 2 <= wd.length) {
+      const cb = u16(wd, fcSepx);
+      forEachSprm(wd, fcSepx + 2, Math.min(wd.length, fcSepx + 2 + cb), (op, at) => {
+        switch (op) {
+          case 0xb01f: sec.width = u16(wd, at); break;
+          case 0xb020: sec.height = u16(wd, at); break;
+          case 0xb021: sec.left = u16(wd, at); break;
+          case 0xb022: sec.right = u16(wd, at); break;
+          case 0x9023: sec.top = Math.abs(i16(wd, at)); break;
+          case 0x9024: sec.bottom = Math.abs(i16(wd, at)); break;
+          case 0x301d: sec.landscape = wd[at] === 2; break;     // bOrientation
+          case 0x500b: sec.cols = u16(wd, at) + 1; break;       // ccolM1
+          case 0x900c: sec.colSpace = u16(wd, at); break;       // dxaColumns
+          case 0xb017: sec.headerTop = u16(wd, at); break;      // dyaHdrTop
+          case 0xb018: sec.footerBottom = u16(wd, at); break;   // dyaHdrBottom
+          default:
+        }
+      });
+    }
+    out.push(sec);
+    prev = sec;
+  }
+  return out;
+}
+
 /** Page size and margins (twips) of the first section; Word 97 defaults when not stored. */
 export function readPageSetup(wd, table) {
   const page = { width: 12240, height: 15840, left: 1800, right: 1800, top: 1440, bottom: 1440 };
@@ -335,7 +444,47 @@ export function readPageSetup(wd, table) {
  *   [{ end: '\r' | '\x07', pap, segments: [{ text, chp }] }]
  * `pap` and `chp` are fully resolved (style + direct formatting).
  */
-export function readWordDocument(wd, table) {
+const BLIP_TYPES = { 0xf01d: 'image/jpeg', 0xf02a: 'image/jpeg', 0xf01e: 'image/png', 0xf01f: 'image/bmp', 0xf029: 'image/tiff' };
+
+/**
+ * An inline picture: the PICF at `at` in the Data stream gives the display size (twips, scaled
+ * by mx / my per mille) and is followed by OfficeArt records holding the picture's blip.
+ */
+export function readInlinePicture(data, at) {
+  if (!data || at + 68 > data.length) return null;
+  const lcb = u32(data, at);
+  const cbHeader = u16(data, at + 4);
+  const end = Math.min(data.length, at + lcb);
+  const mm = u16(data, at + 6);
+  const width = (u16(data, at + 28) * u16(data, at + 32)) / 1000;
+  const height = (u16(data, at + 30) * u16(data, at + 34)) / 1000;
+  let p = at + cbHeader;
+  if (mm === 0x66) p += 1 + data[p]; // picture name
+  // walk records (descending into containers) to the first bitmap blip
+  const find = (from, to) => {
+    for (let q = from; q + 8 <= to;) {
+      const ver = data[q] & 0x0f;
+      const inst = u16(data, q) >> 4;
+      const type = u16(data, q + 2);
+      const len = u32(data, q + 4);
+      const body = q + 8;
+      if (ver === 0x0f) { const hit = find(body, Math.min(to, body + len)); if (hit) return hit; }
+      else if (type === 0xf007) { const hit = find(body + 36, Math.min(to, body + len)); if (hit) return hit; } // FBSE then its blip
+      else if (BLIP_TYPES[type]) {
+        const uids = [0x46b, 0x6e1, 0x7a9, 0x6e3, 0x6e5].includes(inst) ? 32 : 16; // second UID present
+        const start = body + uids + 1;
+        return { mime: BLIP_TYPES[type], bytes: data.subarray(start, Math.min(to, body + len)) };
+      }
+      q = body + len;
+    }
+    return null;
+  };
+  const blip = find(p, end);
+  if (!blip || !width || !height) return null;
+  return { ...blip, width, height };
+}
+
+export function readWordDocument(wd, table, data = null, objectData = null) {
   const fcOf = (i) => u32(wd, FIB_RGFCLCB + i * 8);
   const lcbOf = (i) => u32(wd, FIB_RGFCLCB + i * 8 + 4);
   const ccpText = i32(wd, 76);
@@ -386,51 +535,155 @@ export function readWordDocument(wd, table) {
     return chp;
   };
 
-  // Walk the main-document text character by character.
-  const paras = [];
-  let segs = [];
-  let seg = null;
-  const fields = []; // per open field: true while inside its code part
-  let pending = [];  // characters of the current paragraph: [char, fc]
-  const flush = (end, fcEnd) => {
-    const { pap, styleChp } = papFor(fcEnd);
-    segs = [];
-    seg = null;
-    let lastRun = -2;
-    for (const [ch, fc] of pending) {
-      const r = findRun(chpRuns, fc);
-      if (r !== lastRun || !seg) {
-        seg = { text: '', chp: chpFor(r, styleChp) };
-        segs.push(seg);
-        lastRun = r;
+  // Section ends (CP): a section break (\x0c there) also ends its paragraph.
+  let sections = [];
+  try { sections = readSections(wd, table); } catch { sections = []; }
+  const sectionEnds = sections.map((sc) => sc.cpEnd);
+
+  /**
+   * Reads the text between two CPs into paragraphs. The main document is CP 0..ccpText;
+   * headers and footers are stories after it. PAGE / NUMPAGES fields become PAGE_MARK /
+   * PAGES_MARK, filled in with real numbers when pages are laid out.
+   */
+  let equations = 0;
+  const walk = (cpFrom, cpTo) => {
+    const paras = [];
+    let section = 0;
+    let segs = [];
+    let seg = null;
+    const fields = []; // open fields: { code, inCode, link, page }
+    let pending = [];  // characters of the current paragraph: [char, fc, link]
+    let at = cpFrom;   // CP after the character being read
+    let paraStart = cpFrom;
+    const flush = (end, fcEnd) => {
+      const { pap, styleChp } = papFor(fcEnd);
+      segs = [];
+      seg = null;
+      let lastRun = -2;
+      for (const [ch, fc, link, object] of pending) {
+        const r = findRun(chpRuns, fc);
+        if (r !== lastRun || !seg || seg.link !== link || ch === OBJ || seg.text.endsWith(OBJ)) {
+          seg = { text: '', chp: chpFor(r, styleChp), link };
+          if (object) seg.object = object;
+          segs.push(seg);
+          lastRun = r;
+        }
+        seg.text += ch;
       }
-      seg.text += ch;
+      for (const x of segs) {
+        if (x.text !== OBJ) continue;
+        // an equation: drawn from its own data (MTEF), its preview picture is not needed
+        if (x.object?.equation) {
+          const id = x.object.objFc != null ? chpFor(findRun(chpRuns, x.object.objFc), styleChp).picLocation : undefined;
+          try { x.equation = readMtef(objectData?.(id, x.object.index)); } catch { x.equation = null; }
+          if (x.equation) continue;
+        }
+        x.picture = x.chp.picLocation != null ? readInlinePicture(data, x.chp.picLocation) : null;
+        if (!x.picture) x.text = '';
+      }
+      paras.push({ end, pap, styleChp, section, cpStart: paraStart, cpEnd: at, segments: segs.filter((x) => x.text) });
+      paraStart = at;
+      pending = [];
+    };
+    const linkOf = () => [...fields].reverse().find((f) => f.link)?.link || null;
+    let lastFc = 0;
+    for (const pc of pieces) {
+      const from = Math.max(pc.cpStart, cpFrom);
+      const to = Math.min(pc.cpEnd, cpTo);
+      if (to <= from) continue;
+      const off = from - pc.cpStart;
+      const fc0 = pc.fc + (pc.compressed ? off : off * 2);
+      const text = pc.compressed
+        ? cp1252.decode(wd.subarray(fc0, fc0 + (to - from)))
+        : utf16.decode(wd.subarray(fc0, fc0 + (to - from) * 2));
+      let cp = from;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const fc = fc0 + (pc.compressed ? i : i * 2);
+        lastFc = fc;
+        cp++;
+        at = cp;
+        // fields: \x13 code \x14 result \x15; HYPERLINK makes the result a link, PAGE a page number
+        if (ch === '\x13') { fields.push({ code: '', inCode: true, link: null, page: null }); continue; }
+        if (ch === '\x14') {
+          const f = fields.at(-1);
+          if (f) {
+            f.inCode = false;
+            const m = /^\s*HYPERLINK\s+(\\l\s+)?"([^"]+)"/i.exec(f.code);
+            if (m) f.link = m[1] ? `#${m[2]}` : m[2];
+            const pg = /^\s*(PAGE|NUMPAGES|SECTIONPAGES)\b/i.exec(f.code)?.[1].toUpperCase();
+            if (pg) { f.page = pg; pending.push([pg === 'PAGE' ? PAGE_MARK : PAGES_MARK, fc, linkOf()]); }
+          }
+          continue;
+        }
+        if (ch === '\x15') {
+          const f = fields.pop();
+          // a PAGE field written without a result part (\x13 PAGE \x15)
+          const pg = f && f.inCode && /^\s*(PAGE|NUMPAGES|SECTIONPAGES)\b/i.exec(f.code)?.[1].toUpperCase();
+          if (pg) pending.push([pg === 'PAGE' ? PAGE_MARK : PAGES_MARK, fc, linkOf()]);
+          continue;
+        }
+        if (fields.some((f) => f.inCode)) {
+          const f = fields.at(-1);
+          if (f.inCode) { f.code += ch; if (ch === '\x01') f.objFc = fc; } // the object's storage id is on this character
+          continue;
+        }
+        if (fields.some((f) => f.page)) continue; // the saved page number is replaced by the marker
+        if (ch === '\r' || ch === '\x07') { flush(ch, fc); continue; }
+        if (ch === '\x0c' && sectionEnds.includes(cp)) { flush('\r', fc); section++; continue; } // section break
+        if (ch === '\x01') { // inline picture, or the result of an EMBED field (equation…)
+          const embed = [...fields].reverse().find((f) => /^\s*EMBED\b/i.test(f.code));
+          const object = embed ? { equation: true, objFc: embed.objFc, index: equations++ } : null; // equation if its data is one
+          pending.push([OBJ, fc, linkOf(), object]);
+          continue;
+        }
+        if (/[\x02\x05\x08\x1f]/.test(ch)) continue; // notes, drawn objects, optional hyphen
+        pending.push([ch === '\x1e' ? '-' : ch === '\xa0' ? '\u00a0' : ch, fc, linkOf()]);
+      }
     }
-    paras.push({ end, pap, styleChp, segments: segs.filter((s) => s.text) });
-    pending = [];
+    if (pending.length) flush('\r', lastFc);
+    return paras;
   };
 
-  let cp = 0;
-  for (const pc of pieces) {
-    if (cp >= ccpText) break;
-    const len = Math.min(pc.cpEnd, ccpText) - pc.cpStart;
-    const text = pc.compressed
-      ? cp1252.decode(wd.subarray(pc.fc, pc.fc + len))
-      : utf16.decode(wd.subarray(pc.fc, pc.fc + len * 2));
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
-      const fc = pc.fc + (pc.compressed ? i : i * 2);
-      cp++;
-      if (ch === '\x13') { fields.push(true); continue; }
-      if (ch === '\x14') { if (fields.length) fields[fields.length - 1] = false; continue; }
-      if (ch === '\x15') { fields.pop(); continue; }
-      if (fields.some((inCode) => inCode)) continue;
-      if (ch === '\r' || ch === '\x07') { flush(ch, fc); continue; }
-      if (/[\x01\x02\x05\x08\x1f]/.test(ch)) continue; // pictures, notes, drawn objects, optional hyphen
-      pending.push([ch === '\x1e' ? '-' : ch === '\xa0' ? ' ' : ch, fc]);
+  const paras = walk(0, ccpText);
+
+  // Headers and footers per section (PlcfHdd): 6 separator stories, then per section
+  // even header, header, even footer, footer, first-page header, first-page footer.
+  try {
+    const fcHdd = fcOf(11);
+    const lcbHdd = lcbOf(11);
+    const ccpFtn = i32(wd, 80);
+    if (lcbHdd > 8) {
+      const base = ccpText + ccpFtn;
+      const n = lcbHdd / 4;
+      const cps = Array.from({ length: n }, (_, i) => i32(table, fcHdd + i * 4));
+      const story = (k) => {
+        const a = cps[k]; const b2 = cps[k + 1];
+        if (a == null || b2 == null || b2 - a <= 1) return null; // empty: the section uses the previous one
+        return walk(base + a, base + b2).filter((pp, i, all) => i < all.length - 1 || pp.segments.length); // drop the closing mark
+      };
+      paras.headers = sections.map((_, si) => ({ header: story(6 + si * 6 + 1), footer: story(6 + si * 6 + 3) }));
     }
-  }
-  if (pending.length) flush('\r', pieces.at(-1)?.fc ?? 0);
+  } catch { /* headers and footers are optional */ }
+
+  // Floating shapes, text boxes and pictures, attached to the paragraph holding their anchor.
+  // Text box stories follow the main text, footnotes, headers, comments and endnotes.
+  try {
+    const base = ccpText + i32(wd, 80) + i32(wd, 84) + i32(wd, 92) + i32(wd, 96);
+    const fcTx = fcOf(56);
+    const n = lcbOf(56) >= 4 ? (lcbOf(56) - 4) / 26 : 0;
+    const cps = Array.from({ length: n + 1 }, (_, k) => i32(table, fcTx + k * 4));
+    const storyText = (k) => {
+      if (!(k >= 1 && k <= n)) return null;
+      const story = walk(base + cps[k - 1], base + cps[k]);
+      while (story.length && !story.at(-1).segments.length) story.pop();
+      return story;
+    };
+    for (const d of readDrawings(wd, table, fcOf, lcbOf, storyText)) {
+      const para = paras.find((pp) => d.cp >= pp.cpStart && d.cp < pp.cpEnd);
+      if (para) (para.drawings ||= []).push(d);
+    }
+  } catch (err) { console.warn('Drawings could not be read', err); }
 
   // List markers ("•", "1.", "a)") with per-list counters.
   const counters = new Map();
@@ -473,6 +726,7 @@ export function paragraphStyle(pap, list) {
     css[`padding${name}`] = '2px';
   }
   if (pap.align) css.textAlign = ['left', 'center', 'right', 'justify'][pap.align] || 'left';
+  if (pap.shading) css.backgroundColor = pap.shading;
   if (pap.line) {
     const { value, mult } = pap.line;
     if (mult) css.lineHeight = String(Math.max(0.8, value / 240) * 1.15);
@@ -489,6 +743,7 @@ export function charStyle(chp) {
   if (chp.italic) css.fontStyle = 'italic';
   const deco = [chp.underline && 'underline', chp.strike && 'line-through'].filter(Boolean);
   if (deco.length) css.textDecoration = deco.join(' ');
+  if (chp.underline === 3) css.textDecorationStyle = 'double';
   if (chp.color) css.color = chp.color;
   if (chp.highlight) css.backgroundColor = chp.highlight;
   if (chp.size) css.fontSize = `${chp.size}pt`;

@@ -15,3 +15,7 @@ scripts/test-pack/tests-*.json
 scripts/test-pack/all-tests.json
 scripts/test-pack/__pycache__/
 public/demos/
+
+# test tool output
+scripts/qa/out/
+e2e-*.json

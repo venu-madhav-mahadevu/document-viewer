@@ -76,8 +76,8 @@ function draw(tests, weeks) {
   const problems = [...features.values()].filter((f) => f.fails).sort((a, b) => famOrder(a, b) || b.fails - a.fails || a.feature.localeCompare(b.feature));
 
   $('#take').textContent = `${num.format(pass)} of ${num.format(tests.length - na)} tests pass (${rate}%) on Stage and Angular${na ? ` (${na} more cannot be checked with the test files)` : ''}. `
-    + `${num.format(works.length)} features match the original in every format; ${num.format(problems.length)} features still have problems. `
-    + 'Images, TIFF scans and CSV pass every test.';
+    + `${num.format(works.length)} features match the original in every format; `
+    + (problems.length ? `${num.format(problems.length)} features still have problems. Images, TIFF scans and CSV pass every test.` : 'no feature has an open problem.');
 
   drawWorks(tests, works);
   drawResults(tests, pass, fail, rate, na);
@@ -211,6 +211,15 @@ function drawMatrix(tests, problems) {
     tr.append(el('td', 'n', num.format(p.fails)));
     return tr;
   }));
+  if (!problems.length) {
+    // nothing fails: one row saying so instead of an empty table
+    const td = el('td', 'mx-empty', 'No open problems: every test that can be checked with the test files passes in every format.');
+    td.colSpan = MX_FORMATS.length + 3;
+    const tr = el('tr');
+    tr.append(td);
+    $('#mx tbody').append(tr);
+    detail.textContent = 'There are no Fail cells to show.';
+  }
 }
 
 // ---------- Fix plan (2 weeks) ----------
