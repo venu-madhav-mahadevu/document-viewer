@@ -280,13 +280,14 @@ function placePictures(grid, table, pics) {
   const layer = el('div', 'dv-sheet-pics');
   const headCells = new Map([...table.tHead.rows[0].cells].map((th) => [Number(th.dataset.c), th]));
   const rowEls = new Map([...table.tBodies[0].rows].map((tr) => [Number(tr.dataset.r), tr]));
-  const colX = (c, off) => { const th = headCells.get(c); return th ? th.offsetLeft + off / 9525 : null; };
-  const rowY = (r, off) => { const tr = rowEls.get(r); return tr ? tr.offsetTop + off / 9525 : null; };
+  // offsets: EMU (.xlsx) or a fraction of the cell (.xls)
+  const colX = (c, off, frac) => { const th = headCells.get(c); return th ? th.offsetLeft + (frac != null ? frac * th.offsetWidth : off / 9525) : null; };
+  const rowY = (r, off, frac) => { const tr = rowEls.get(r); return tr ? tr.offsetTop + (frac != null ? frac * tr.offsetHeight : off / 9525) : null; };
   for (const p of pics) {
-    const x = colX(p.from.col, p.from.colOff); const y = rowY(p.from.row, p.from.rowOff);
+    const x = colX(p.from.col, p.from.colOff, p.from.colFrac); const y = rowY(p.from.row, p.from.rowOff, p.from.rowFrac);
     if (x == null || y == null) continue;
     let w = p.cx / 9525; let h = p.cy / 9525;
-    if (p.to) { const x2 = colX(p.to.col, p.to.colOff); const y2 = rowY(p.to.row, p.to.rowOff); if (x2 != null) w = x2 - x; if (y2 != null) h = y2 - y; }
+    if (p.to) { const x2 = colX(p.to.col, p.to.colOff, p.to.colFrac); const y2 = rowY(p.to.row, p.to.rowOff, p.to.rowFrac); if (x2 != null) w = x2 - x; if (y2 != null) h = y2 - y; }
     const img = el('img', 'dv-sheet-pic');
     img.src = p.src;
     img.alt = 'Picture';
@@ -479,7 +480,10 @@ function buildTable(ws, download, formats, isCsv, names = [], goTo = () => {}) {
     cols.forEach((c, i) => {
       const key = `${r}:${c}`;
       if (covered.has(key)) return;
-      const cell = ws[XLSX.utils.encode_cell({ r, c })];
+      let cell = ws[XLSX.utils.encode_cell({ r, c })];
+      // .xls rich text comes from xls-format.js in the same run form as .xlsx
+      const rich = formats?.['!rich']?.[XLSX.utils.encode_cell({ r, c })];
+      if (rich && cell && !cell.r) cell = { ...cell, r: rich };
       const text = cell ? XLSX.utils.format_cell(cell) : '';
       const td = el('td', null, text);
       if (cell && cell.t === 'n') td.className = 'dv-num';
