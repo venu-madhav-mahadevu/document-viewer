@@ -94,6 +94,7 @@ table.t { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-
 .mx td.cell button.Pass { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
 .mx td.cell button.NA { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
 .mx td.cell button:focus-visible, .mx td.cell button[aria-pressed="true"] { outline: 2px solid var(--text); }
+.f .k.na { color: var(--muted); font-size: 12px; }
 .mx-empty { padding: 14px 10px; color: var(--muted, inherit); text-align: center; white-space: normal; }
 .detail { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); font-size: 13px; min-height: 3.4rem; }
 

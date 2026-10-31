@@ -42,6 +42,7 @@ python gen_pdf.py
 node lo-convert.mjs out/test-word-for-doc.docx=doc out/test-excel-for-xls.xlsx=xls out/test-slides-for-ppt.pptx=ppt
 mv out/test-word-for-doc.doc out/test-word.doc
 mv out/test-excel-for-xls.xls out/test-excel.xls
+node xls-extras.cjs out/test-excel.xls           # pattern, gradient, color scale, data bars, icons, filter (LibreOffice drops them)
 mv out/test-slides-for-ppt.ppt out/test-slides.ppt
 node finalize.cjs                          # .docm / .xlsm types, clean-up, TEST-CHECKLIST.xlsx
 cp out/* ../../public/samples/test-pack/

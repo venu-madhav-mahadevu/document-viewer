@@ -90,9 +90,12 @@ function familyTiles(box, tests, field) {
   box.replaceChildren(...FAMILIES.map((family) => {
     const mine = tests.filter((t) => t.family === family);
     const n = mine.filter((t) => t.result === field).length;
+    const na = mine.filter((t) => t.result === 'N/A').length; // cannot be checked with the test files
+    const checked = mine.length - na;
     const d = el('div', 'f');
     d.append(el('div', 'k', family), el('div', 'v', num.format(n)),
-      el('div', 'k', field === 'Pass' ? `of ${num.format(mine.length)} tests pass` : `${n === 1 ? 'fail' : 'fails'} of ${num.format(mine.length)} tests`));
+      el('div', 'k', field === 'Pass' ? `of ${num.format(checked)} tests pass` : `${n === 1 ? 'fail' : 'fails'} of ${num.format(checked)} tests`));
+    if (na) d.append(el('div', 'k na', `+ ${num.format(na)} N/A (not in the test file)`));
     return d;
   }));
 }

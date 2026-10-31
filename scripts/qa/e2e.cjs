@@ -13,8 +13,13 @@ const LARGE = ['large/large-report-49mb.pdf', 'large/large-transactions-50mb.xls
 const CONTENT = '.dv-pdf-page, section.docx, .dv-grid, .dv-pptx-slide, .dv-image img, .dv-text pre, .dv-tiff-page, .dv-legacy-page, .dv-legacy-slide';
 
 const docUrl = (file) => (mode === 'angular' ? `${appBase}#/view?file=${encodeURIComponent(file)}` : `${appBase}?src=samples/${file}`);
+// While the test moves from one document to the next, WebKit cancels the old page's pending
+// blob reads (a TIFF page still decoding) and reports that on the new page; only those
+// cancellations are ignored, and only during the switch.
+let switching = false;
 async function openDoc(p, file, timeout = 60000) {
-  await p.goto(docUrl(file));
+  switching = true;
+  try { await p.goto(docUrl(file)); } finally { switching = false; }
   if (mode === 'angular') await p.reload();
   const want = file.split('/').pop();
   await p.waitForFunction(([sel, w]) => {
@@ -31,11 +36,22 @@ async function openDoc(p, file, timeout = 60000) {
   }), CONTENT);
 }
 function watch(p, bag) {
-  p.on('pageerror', (e) => bag.push(`pageerror: ${e.message}`));
-  p.on('console', (m) => { if (m.type() === 'error' && !/missing\.pdf|404 \(File not found\)|status of 404|isn.t supported/.test(m.text())) bag.push(`console: ${m.text()}`); });
+  p.on('pageerror', (e) => { if (!(switching && /Cannot load blob/.test(`${e.name} ${e.message}`) && /access control checks/.test(e.message))) bag.push(`pageerror: ${e.message}`); });
+  p.on('console', (m) => { if (m.type() === 'error' && !/missing\.pdf|404 \(File not found\)|status of 404|isn.t supported|Could not load the document \(HTTP 404\)|downloadable font: download failed/.test(m.text())) bag.push(`console: ${m.text()}`); });
 }
 
 (async () => {
+  // ---------------- 0. Every font file the font stylesheet names is served (a font download
+  // cancelled by moving to the next document is reported by Firefox the same way, so the
+  // browser runs below ignore that message and this check covers real missing files)
+  {
+    const css = await (await fetch(new URL('fonts/office-fonts.css', appBase))).text();
+    const files = [...new Set([...css.matchAll(/url\(\.\/([^)]+)\)/g)].map((m) => m[1]))];
+    const bad = [];
+    for (const f of files) { const r = await fetch(new URL(`fonts/${f}`, appBase), { method: 'HEAD' }); if (!r.ok) bad.push(`${f} ${r.status}`); }
+    check('Fonts', `all ${files.length} font files load`, files.length > 0 && bad.length === 0, bad.slice(0, 3).join(', '));
+  }
+
   // ---------------- A. Every sample in three browser engines
   for (const [engineName, engine, opts] of [['Chrome', chromium, { viewport: { width: 1280, height: 900 } }], ['Firefox', firefox, { viewport: { width: 1280, height: 900 } }], ['Safari (iPhone)', webkit, devices['iPhone 13']]]) {
     if (quick && engineName !== 'Chrome') continue;
@@ -255,7 +271,7 @@ function watch(p, bag) {
     await p.click('#start');
     for (const f of ['onboarding-guide.doc', 'strategy-deck.ppt', 'branches-legacy.xls']) {
       if (f !== 'onboarding-guide.doc') await p.selectOption('#sample', f);
-      const st = await p.waitForFunction((n) => { const t = document.getElementById('status').textContent; return (/converted|failed/.test(t) && t.includes(n)) ? t : false; }, f, { timeout: 180000 }).then((h) => h.jsonValue()).catch(() => 'timeout');
+      const st = await p.waitForFunction((n) => { const t = document.getElementById('status').textContent; return (/converted|failed/.test(t) && t.includes(n)) ? t : false; }, f, { timeout: f === 'onboarding-guide.doc' ? 360000 : 180000 }).then((h) => h.jsonValue()).catch(() => 'timeout'); // the first one also loads the engine
       await p.waitForTimeout(2000);
       const pages = await p.locator('#pdf .dv-page').count();
       check(A, `Converts ${f} to PDF`, /converted/.test(st) && pages > 0, `${st} · ${pages} PDF page(s)`);
