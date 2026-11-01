@@ -1,0 +1,16 @@
+/* Test runner page; colors, cards, tables and chips come from ../test-report/report.css */
+.run, .ghost { font: inherit; font-size: 13px; padding: 6px 14px; border-radius: 6px; cursor: pointer; }
+.run { background: var(--accent); color: var(--bg); border: 1px solid var(--accent); font-weight: 600; }
+.ghost { background: none; color: var(--text); border: 1px solid var(--border); }
+.run:disabled, .ghost:disabled { opacity: 0.55; cursor: default; }
+.run:focus-visible, .ghost:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tiles[hidden] { display: none; }
+.tiles { margin-top: 12px; }
+.bar-run { height: 4px; border-radius: 2px; background: var(--grid); margin-top: 12px; overflow: hidden; }
+.bar-run > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.3s; }
+.runner { align-items: start; }
+.runner iframe { width: 100%; height: 560px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+.t td.seen { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.t tr.fail td { background: color-mix(in srgb, var(--bad) 7%, transparent); }
+.foot { margin-top: 16px; }
+@media (max-width: 700px) { .runner iframe { height: 420px; } }
