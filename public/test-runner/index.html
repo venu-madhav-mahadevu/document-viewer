@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Docs Viewer Test Runner</title>
+  <link rel="stylesheet" href="../test-report/report.css">
+  <link rel="stylesheet" href="runner.css">
+  <script src="runner.js" defer></script>
+</head>
+<body>
+  <div class="wrap">
+    <header class="head">
+      <a class="back" href="../">← Back to Docs Viewer</a>
+      <h1>Run all tests</h1>
+      <p class="take" id="take">Opens every file of the test pack in this site's viewer, in this browser, and checks what it shows.
+        Nothing is uploaded; the run takes about 2 minutes.</p>
+    </header>
+
+    <div class="card">
+      <div class="tools">
+        <button type="button" class="run" id="run">Run all tests</button>
+        <select id="only" aria-label="Run one file only"><option value="">All 28 test files</option></select>
+        <button type="button" class="ghost" id="save" disabled>Download results</button>
+        <span class="count" id="status" aria-live="polite">Not run yet.</span>
+      </div>
+      <div class="tiles" id="tiles" hidden>
+        <div class="tile ok"><div class="lbl">Checks passed</div><div class="num" id="t-pass">0</div></div>
+        <div class="tile bad"><div class="lbl">Checks failed</div><div class="num" id="t-fail">0</div></div>
+        <div class="tile"><div class="lbl">Files opened</div><div class="num" id="t-files">0</div></div>
+        <div class="tile"><div class="lbl">Time</div><div class="num" id="t-time">0 s</div></div>
+      </div>
+      <div class="bar-run" aria-hidden="true"><i id="progress"></i></div>
+    </div>
+
+    <div class="grid2 runner">
+      <div class="card">
+        <h2>Results</h2>
+        <p class="note">One row per check. Failed checks show what the viewer showed instead.</p>
+        <div class="scroll">
+          <table class="t" id="results">
+            <thead><tr><th>File</th><th>Check</th><th class="c">Result</th><th>Seen</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Live view</h2>
+        <p class="note">The file being checked, in the same viewer visitors use.</p>
+        <iframe id="frame" title="Document being tested" src="about:blank"></iframe>
+      </div>
+    </div>
+
+    <p class="note foot">These automatic checks cover all 28 test files: each opens without errors and shows its
+      pages, pictures, shapes, rules, bookmarks and other key content. How each of the 506 test cases
+      looks compared with the original is in the <a href="../test-report/index.html">test results report</a>.</p>
+  </div>
+</body>
+</html>
